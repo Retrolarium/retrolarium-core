@@ -1,0 +1,8 @@
+# Sources are LF everywhere: the studio builds the core in bash inside Docker.
+*.cpp           text eol=lf
+*.hpp           text eol=lf
+*.h             text eol=lf
+*.md            text eol=lf
+*.py            text eol=lf
+*.cmake         text eol=lf
+CMakeLists.txt  text eol=lf

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://retrolarium.dev/schemas/nes-disassembly-v1.schema.json",
+  "title": "Retrolarium NES disassembly project",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "task",
+    "mode",
+    "input",
+    "backend",
+    "facts",
+    "assets",
+    "symbols",
+    "pointers",
+    "source",
+    "operations",
+    "verification"
+  ],
+  "properties": {
+    "schema": { "const": "retrolarium.nes.disassembly" },
+    "schema_version": { "const": 1 },
+    "task": { "const": "nes.disassemble" },
+    "mode": { "enum": ["blind", "assisted"] },
+    "input": {
+      "type": "object",
+      "required": ["sha256", "size", "format", "mapper", "mapper_profile", "regions", "projections"]
+    },
+    "backend": {
+      "type": "object",
+      "required": ["id", "analysis_root", "banks"]
+    },
+    "facts": { "$ref": "#/$defs/hashedArtifact" },
+    "symbols": { "$ref": "#/$defs/hashedArtifact" },
+    "pointers": { "$ref": "#/$defs/hashedArtifact" },
+    "assets": {
+      "type": "object",
+      "required": ["schema", "schema_version", "items"]
+    },
+    "source": {
+      "type": "object",
+      "required": ["dialect", "directory", "units", "coverage", "whole_rom_fallback"]
+    },
+    "operations": {
+      "type": "object",
+      "required": ["build", "verify", "launch"]
+    },
+    "verification": {
+      "type": "object",
+      "required": ["status"]
+    }
+  },
+  "$defs": {
+    "hashedArtifact": {
+      "type": "object",
+      "required": ["path", "sha256"]
+    }
+  }
+}

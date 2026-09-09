@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://retrolarium.dev/schemas/megadrive-disassembly-v1.schema.json",
+  "title": "Retrolarium Mega Drive disassembly project",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "task",
+    "mode",
+    "input",
+    "analysis",
+    "pointers",
+    "symbols",
+    "cross_cpu_evidence",
+    "assets",
+    "source",
+    "operations",
+    "verification"
+  ],
+  "properties": {
+    "schema": { "const": "retrolarium.megadrive.disassembly" },
+    "schema_version": { "const": 1 },
+    "task": { "const": "megadrive.disassemble" },
+    "mode": { "const": "blind" },
+    "input": {
+      "type": "object",
+      "required": [
+        "schema", "schema_version", "sha256", "size", "byte_order", "cpu",
+        "header", "vectors", "regions", "address_ranges"
+      ],
+      "properties": {
+        "schema": { "const": "retrolarium.megadrive.image" },
+        "schema_version": { "const": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "size": { "type": "integer", "minimum": 512 },
+        "byte_order": { "const": "big" },
+        "cpu": { "const": "m68000" }
+      }
+    },
+    "analysis": { "$ref": "#/$defs/hashedArtifact" },
+    "pointers": { "$ref": "#/$defs/hashedArtifact" },
+    "symbols": { "$ref": "#/$defs/hashedArtifact" },
+    "cross_cpu_evidence": { "$ref": "#/$defs/hashedArtifact" },
+    "assets": {
+      "type": "object",
+      "required": ["schema", "schema_version", "items"],
+      "properties": {
+        "schema": { "const": "retrolarium.assets" },
+        "schema_version": { "const": 1 },
+        "items": { "type": "array", "minItems": 1 }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["dialect", "directory", "units", "coverage", "instruction_encoding"],
+      "properties": {
+        "dialect": { "const": "asm68k-exact-first" },
+        "units": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "coverage": {
+          "type": "object",
+          "required": [
+            "rom_bytes", "vector_bytes", "instruction_bytes", "pointer_bytes",
+            "asset_bytes", "raw_bytes"
+          ]
+        }
+      }
+    },
+    "operations": {
+      "type": "object",
+      "required": ["build", "verify", "launch"]
+    },
+    "verification": {
+      "type": "object",
+      "required": ["status"]
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "hashedArtifact": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

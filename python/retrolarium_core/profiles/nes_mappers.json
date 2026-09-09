@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "0": {
+      "id": "nes.nrom",
+      "name": "NROM",
+      "prg_mode": "nrom_fixed",
+      "prg_bank_size": null,
+      "prg_window_start": 32768,
+      "max_prg_banks": 1,
+      "chr_bank_size": 8192,
+      "chr_window_start": 0,
+      "max_chr_banks": 1,
+      "chr_selectable": false
+    },
+    "3": {
+      "id": "nes.cnrom",
+      "name": "CNROM",
+      "prg_mode": "nrom_fixed",
+      "prg_bank_size": null,
+      "prg_window_start": 32768,
+      "max_prg_banks": 1,
+      "chr_bank_size": 8192,
+      "chr_window_start": 0,
+      "max_chr_banks": 4,
+      "chr_selectable": true
+    },
+    "66": {
+      "id": "nes.gnrom",
+      "name": "GNROM/GxROM",
+      "prg_mode": "selectable_32k",
+      "prg_bank_size": 32768,
+      "prg_window_start": 32768,
+      "max_prg_banks": 4,
+      "chr_bank_size": 8192,
+      "chr_window_start": 0,
+      "max_chr_banks": 4,
+      "chr_selectable": true
+    }
+  }
+}
