@@ -33,6 +33,42 @@ def artifact_path(root: Path, value: object) -> Path:
     return candidate
 
 
+def _validate_build_runner(
+    root: Path,
+    build: dict[str, Any],
+    *,
+    suite: str,
+    recipe: str,
+) -> None:
+    runner = build.get("runner")
+    if runner not in (None, "docker", "retrolarium-kit"):
+        raise ContractError(f"unsupported build runner: {runner!r}")
+    argv = build.get("argv")
+    if argv is not None and (
+        not isinstance(argv, list)
+        or not argv
+        or any(not isinstance(value, str) or not value for value in argv)
+    ):
+        raise ContractError("build argv must be a non-empty string array")
+    if runner != "retrolarium-kit":
+        return
+    if build.get("toolchain_suite") != suite or build.get("recipe") != recipe:
+        raise ContractError("bundled build suite or recipe does not match the platform")
+    project_directory = artifact_path(root, build.get("project_directory"))
+    fields = (
+        ("source", "linker_config", "object", "map")
+        if recipe == "ca65-ld65-v1"
+        else ("source", "object")
+    )
+    for field in fields:
+        artifact_path(project_directory, build.get(field))
+    output = artifact_path(root, build.get("output"))
+    try:
+        output.relative_to(project_directory)
+    except ValueError as exc:
+        raise ContractError("build output must be inside project_directory") from exc
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -117,6 +153,9 @@ def validate_nes_disassembly_manifest(
     project_directory = artifact_path(root, build.get("project_directory"))
     if not project_directory.is_dir():
         raise ContractError("build project directory does not exist")
+    _validate_build_runner(
+        root, build, suite="nes", recipe="ca65-ld65-v1"
+    )
     operation_artifact = build.get("output")
     if not (
         operation_artifact == verify.get("artifact") == launch.get("artifact")
@@ -395,7 +434,7 @@ def validate_megadrive_disassembly_manifest(
 
     _validate_megadrive_assets(manifest, root, input_size)
     source = _mapping(manifest.get("source"), "source")
-    if source.get("dialect") != "asm68k-exact-first":
+    if source.get("dialect") not in {"asm68k-exact-first", "asl-exact-first"}:
         raise ContractError("unsupported Mega Drive source dialect")
     units = source.get("units")
     if not isinstance(units, list) or not units:
@@ -421,7 +460,10 @@ def validate_megadrive_disassembly_manifest(
     build = _mapping(operations.get("build"), "operations.build")
     verify = _mapping(operations.get("verify"), "operations.verify")
     launch = _mapping(operations.get("launch"), "operations.launch")
-    if build.get("id") != "retrolarium.project.build" or build.get("runner") != "docker":
+    if (
+        build.get("id") != "retrolarium.project.build"
+        or build.get("runner") not in {"docker", "retrolarium-kit"}
+    ):
         raise ContractError("unsupported Mega Drive build operation")
     argv = build.get("argv")
     if not isinstance(argv, list) or not argv or any(not isinstance(value, str) or not value for value in argv):
@@ -429,6 +471,9 @@ def validate_megadrive_disassembly_manifest(
     project_directory = artifact_path(root, build.get("project_directory"))
     if not project_directory.is_dir():
         raise ContractError("build project directory does not exist")
+    _validate_build_runner(
+        root, build, suite="megadrive", recipe="asl-p2bin-v1"
+    )
     if not (build.get("output") == verify.get("artifact") == launch.get("artifact")):
         raise ContractError("build, verify and launch artifacts differ")
     artifact_path(root, build.get("output"))
@@ -701,7 +746,7 @@ def validate_snes_disassembly_manifest(
     launch = _mapping(operations.get("launch"), "operations.launch")
     if (
         build.get("id") != "retrolarium.project.build"
-        or build.get("runner") != "docker"
+        or build.get("runner") not in {"docker", "retrolarium-kit"}
         or build.get("argv") != ["make", "all"]
         or not artifact_path(root, build.get("project_directory")).is_dir()
         or build.get("output") != verify.get("artifact")
@@ -716,6 +761,9 @@ def validate_snes_disassembly_manifest(
         or launch.get("supported_modes") != ["interactive-plan", "smoke"]
     ):
         raise ContractError("invalid SNES project operation contract")
+    _validate_build_runner(
+        root, build, suite="nes", recipe="ca65-ld65-v1"
+    )
 
     verification = _mapping(manifest.get("verification"), "verification")
     if verify_rebuilt and verification.get("status") == "exact":
