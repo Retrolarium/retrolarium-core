@@ -461,6 +461,275 @@ def validate_megadrive_disassembly_manifest(
             raise ContractError("rebuilt Mega Drive ROM no longer matches exact verification")
 
 
+def validate_snes_disassembly_manifest(
+    manifest: dict[str, Any], root: Path, *, verify_rebuilt: bool = True
+) -> None:
+    """Validate the public v1 multi-program plain LoROM/HiROM contract."""
+    if manifest.get("schema") != "retrolarium.snes.disassembly":
+        raise ContractError("unsupported SNES disassembly manifest schema")
+    if manifest.get("schema_version") != 1 or manifest.get("task") != "snes.disassemble":
+        raise ContractError("unsupported SNES disassembly manifest version or task")
+    if manifest.get("mode") != "blind":
+        raise ContractError("unsupported SNES project mode")
+
+    image = _mapping(manifest.get("input"), "input")
+    if image.get("schema") != "retrolarium.snes.image" or image.get("schema_version") != 1:
+        raise ContractError("unsupported SNES input image contract")
+    container_sha = _require_sha256(image.get("container_sha256"), "input.container_sha256")
+    rom_sha = _require_sha256(image.get("rom_sha256"), "input.rom_sha256")
+    container_size = image.get("container_size")
+    rom_size = image.get("rom_size")
+    copier_size = image.get("copier_header_size")
+    if (
+        image.get("cpu") != "w65c816"
+        or image.get("byte_order") != "little"
+        or image.get("mapping") not in {"lorom", "hirom"}
+        or not isinstance(container_size, int)
+        or not isinstance(rom_size, int)
+        or not isinstance(copier_size, int)
+        or container_size != rom_size + copier_size
+        or copier_size not in {0, 512}
+    ):
+        raise ContractError("inconsistent SNES input architecture or sizes")
+
+    records: dict[str, tuple[Path, dict[str, Any]]] = {}
+    for name in ("analysis", "pointers", "symbols", "cross_cpu_evidence"):
+        record = _mapping(manifest.get(name), name)
+        path = _validate_hashed_file(root, record, name)
+        records[name] = (path, _read_json_artifact(path, name))
+    analysis_path, analysis = records["analysis"]
+    if (
+        analysis.get("schema") != "retrolarium.snes.analysis"
+        or analysis.get("schema_version") != 1
+        or analysis.get("task") != "snes.analyze"
+    ):
+        raise ContractError("unsupported SNES analysis artifact")
+    analyzed_input = _mapping(analysis.get("input"), "analysis.input")
+    if (
+        analyzed_input.get("sha256") != container_sha
+        or analyzed_input.get("rom_sha256") != rom_sha
+        or analyzed_input.get("size") != container_size
+        or analyzed_input.get("rom_size") != rom_size
+        or analyzed_input.get("mapping") != image.get("mapping")
+    ):
+        raise ContractError("SNES analysis input differs from project input")
+    programs = analysis.get("programs")
+    if (
+        not isinstance(programs, list)
+        or not programs
+        or manifest["analysis"].get("program_count") != len(programs)
+    ):
+        raise ContractError("SNES analysis program count is invalid")
+    analysis_root = analysis_path.parent
+    cpu_ids: set[str] = set()
+    derived_edges: set[str] = set()
+    main_payload: bytes | None = None
+    for index, value in enumerate(programs):
+        program = _mapping(value, f"analysis.programs[{index}]")
+        cpu_id = program.get("cpu_id")
+        space = program.get("address_space")
+        if not isinstance(cpu_id, str) or not cpu_id or cpu_id in cpu_ids:
+            raise ContractError(f"analysis.programs[{index}] has invalid cpu_id")
+        cpu_ids.add(cpu_id)
+        expected = {
+            "snes-rom": ("65816:LE:24:snes", "little"),
+            "spc700-ram": ("SPC700:LE:16:default", "little"),
+        }.get(space)
+        if expected is None or (program.get("language"), program.get("byte_order")) != expected:
+            raise ContractError(f"analysis program {cpu_id} has inconsistent architecture")
+        analysis_input = _validate_hashed_file(
+            analysis_root,
+            {
+                "path": program.get("analysis_input"),
+                "sha256": program.get("analysis_input_sha256"),
+            },
+            f"analysis program {cpu_id} input",
+        )
+        if space == "snes-rom":
+            if cpu_id != "w65c816" or program.get("status") != "independent-state-analysis":
+                raise ContractError("SNES main program identity is invalid")
+            if analysis_input.stat().st_size != rom_size or _sha256(analysis_input) != rom_sha:
+                raise ContractError("SNES main analysis input differs from cartridge ROM")
+            main_payload = analysis_input.read_bytes()
+            state_path = _validate_hashed_file(
+                analysis_root,
+                {
+                    "path": program.get("instructions"),
+                    "sha256": program.get("instructions_sha256"),
+                },
+                "W65C816 state instructions",
+            )
+            state = _read_json_artifact(state_path, "W65C816 state instructions")
+            if (
+                state.get("schema") != "retrolarium.snes.state-analysis"
+                or state.get("input_sha256") != rom_sha
+                or len(state.get("instructions", [])) != program.get("instruction_count")
+            ):
+                raise ContractError("invalid W65C816 state instruction artifact")
+        else:
+            edge = program.get("derived_from")
+            if not isinstance(edge, str) or not edge:
+                raise ContractError(f"SPC700 program {cpu_id} has no derivation")
+            derived_edges.add(edge)
+            if program.get("status") not in {"extracted", "analyzed"}:
+                raise ContractError(f"SPC700 program {cpu_id} has invalid status")
+            if program.get("status") == "analyzed":
+                for field, hash_field in (
+                    ("instructions", "instructions_sha256"),
+                    ("raw_facts", "raw_facts_sha256"),
+                    ("report", "report_sha256"),
+                ):
+                    _validate_hashed_file(
+                        analysis_root,
+                        {"path": program.get(field), "sha256": program.get(hash_field)},
+                        f"SPC700 program {cpu_id} {field}",
+                    )
+    if main_payload is None:
+        raise ContractError("SNES analysis has no W65C816 program")
+
+    pointers = records["pointers"][1]
+    symbols = records["symbols"][1]
+    for value, schema, name in (
+        (pointers, "retrolarium.snes.pointers", "pointers"),
+        (symbols, "retrolarium.symbols", "symbols"),
+    ):
+        if value.get("schema") != schema or value.get("schema_version") != 1:
+            raise ContractError(f"unsupported SNES {name} artifact")
+        if value.get("input_sha256") != rom_sha:
+            raise ContractError(f"SNES {name} input differs from project input")
+
+    evidence = records["cross_cpu_evidence"][1]
+    if (
+        evidence.get("schema") != "retrolarium.cross-cpu-evidence"
+        or evidence.get("schema_version") != 1
+        or evidence.get("platform") != "snes"
+        or evidence.get("input_sha256") != container_sha
+    ):
+        raise ContractError("unsupported SNES cross-CPU evidence artifact")
+    edges = evidence.get("edges")
+    if not isinstance(edges, list) or manifest["cross_cpu_evidence"].get("edge_count") != len(edges):
+        raise ContractError("SNES cross-CPU edge count is invalid")
+    edge_ids: set[str] = set()
+    for index, value in enumerate(edges):
+        edge = _mapping(value, f"cross_cpu_evidence.edges[{index}]")
+        source = _mapping(edge.get("source"), f"edge {index} source")
+        target = _mapping(edge.get("target"), f"edge {index} target")
+        edge_id = edge.get("id")
+        size = edge.get("size")
+        physical_start = source.get("physical_start")
+        physical_end = source.get("physical_end")
+        target_start = target.get("start")
+        target_end = target.get("end")
+        if (
+            not isinstance(edge_id, str)
+            or not edge_id
+            or edge_id in edge_ids
+            or edge.get("kind") != "memory_copy"
+            or edge.get("confidence") != "proven-static-copy"
+            or source.get("cpu_id") != "w65c816"
+            or source.get("address_space") != "snes-rom"
+            or target.get("cpu_id") != "spc700"
+            or target.get("address_space") != "spc700-ram"
+            or not isinstance(size, int)
+            or size <= 0
+            or not isinstance(physical_start, int)
+            or not isinstance(physical_end, int)
+            or physical_end - physical_start + 1 != size
+            or physical_start < 0
+            or physical_end >= len(main_payload)
+            or not isinstance(target_start, int)
+            or not isinstance(target_end, int)
+            or target_end - target_start + 1 != size
+        ):
+            raise ContractError(f"invalid SNES cross-CPU edge at index {index}")
+        payload = _validate_hashed_file(
+            analysis_root,
+            {"path": edge.get("payload"), "sha256": edge.get("payload_sha256")},
+            f"SNES cross-CPU edge {edge_id} payload",
+        ).read_bytes()
+        if payload != main_payload[physical_start:physical_end + 1]:
+            raise ContractError(f"SNES cross-CPU edge {edge_id} payload is not its ROM slice")
+        edge_ids.add(edge_id)
+    if derived_edges != edge_ids:
+        raise ContractError("SPC700 programs and cross-CPU evidence do not correspond")
+
+    assets = _mapping(manifest.get("assets"), "assets")
+    if assets.get("schema") != "retrolarium.assets" or assets.get("schema_version") != 1:
+        raise ContractError("unsupported SNES assets manifest")
+    items = assets.get("items")
+    if not isinstance(items, list):
+        raise ContractError("SNES assets.items must be an array")
+    asset_derivations: set[str] = set()
+    for index, value in enumerate(items):
+        item = _mapping(value, f"assets.items[{index}]")
+        path = _validate_hashed_file(root, item, f"SNES asset {index}")
+        if path.stat().st_size != item.get("size") or item.get("kind") != "spc700-program":
+            raise ContractError(f"invalid SNES asset at index {index}")
+        edge = item.get("derived_from")
+        if not isinstance(edge, str):
+            raise ContractError(f"SNES asset {index} has no derivation")
+        asset_derivations.add(edge)
+    if asset_derivations != edge_ids:
+        raise ContractError("SNES assets and cross-CPU evidence do not correspond")
+
+    source = _mapping(manifest.get("source"), "source")
+    if source.get("dialect") != "ca65" or source.get("whole_rom_fallback") is not False:
+        raise ContractError("unsupported SNES source policy")
+    units = source.get("units")
+    if not isinstance(units, list) or not units:
+        raise ContractError("SNES source.units must be a non-empty list")
+    for unit in units:
+        if not artifact_path(root, unit).is_file():
+            raise ContractError("SNES source unit does not exist")
+    _validate_hashed_file(root, _mapping(source.get("emission"), "source.emission"), "emission")
+    coverage = _mapping(source.get("coverage"), "source.coverage")
+    categories = (
+        "instruction_bytes", "instruction_fallback_bytes", "pointer_bytes",
+        "header_bytes", "raw_bytes",
+    )
+    if (
+        coverage.get("rom_bytes") != rom_size
+        or coverage.get("copier_header_bytes") != copier_size
+        or any(not isinstance(coverage.get(name), int) or coverage[name] < 0 for name in categories)
+        or sum(coverage[name] for name in categories) != rom_size
+    ):
+        raise ContractError("SNES source coverage does not partition the ROM")
+
+    operations = _mapping(manifest.get("operations"), "operations")
+    build = _mapping(operations.get("build"), "operations.build")
+    verify = _mapping(operations.get("verify"), "operations.verify")
+    launch = _mapping(operations.get("launch"), "operations.launch")
+    if (
+        build.get("id") != "retrolarium.project.build"
+        or build.get("runner") != "docker"
+        or build.get("argv") != ["make", "all"]
+        or not artifact_path(root, build.get("project_directory")).is_dir()
+        or build.get("output") != verify.get("artifact")
+        or build.get("output") != launch.get("artifact")
+        or verify.get("id") != "retrolarium.project.verify"
+        or verify.get("expected_sha256") != container_sha
+        or verify.get("expected_size") != container_size
+        or launch.get("id") != "retrolarium.project.launch"
+        or launch.get("platform") != "snes"
+        or launch.get("default_machine") != "snes"
+        or launch.get("supported_machines") != ["snes", "snespal"]
+        or launch.get("supported_modes") != ["interactive-plan", "smoke"]
+    ):
+        raise ContractError("invalid SNES project operation contract")
+
+    verification = _mapping(manifest.get("verification"), "verification")
+    if verify_rebuilt and verification.get("status") == "exact":
+        rebuilt = artifact_path(root, verify.get("artifact"))
+        if (
+            not rebuilt.is_file()
+            or rebuilt.stat().st_size != container_size
+            or _sha256(rebuilt) != container_sha
+            or verification.get("original_sha256") != container_sha
+            or verification.get("rebuilt_sha256") != container_sha
+        ):
+            raise ContractError("rebuilt SNES ROM no longer matches exact verification")
+
+
 def validate_disassembly_manifest(
     manifest: dict[str, Any], root: Path, *, verify_rebuilt: bool = True
 ) -> None:
@@ -471,6 +740,10 @@ def validate_disassembly_manifest(
         )
     elif schema == "retrolarium.megadrive.disassembly":
         validate_megadrive_disassembly_manifest(
+            manifest, root, verify_rebuilt=verify_rebuilt
+        )
+    elif schema == "retrolarium.snes.disassembly":
+        validate_snes_disassembly_manifest(
             manifest, root, verify_rebuilt=verify_rebuilt
         )
     else:

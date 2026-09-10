@@ -1,42 +1,37 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://retrolarium.dev/schemas/megadrive-disassembly-v1.schema.json",
-  "title": "Retrolarium Mega Drive disassembly project",
+  "$id": "https://retrolarium.dev/schemas/snes-disassembly-v1.schema.json",
+  "title": "Retrolarium SNES disassembly project",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema",
-    "schema_version",
-    "task",
-    "mode",
-    "input",
-    "analysis",
-    "pointers",
-    "symbols",
-    "cross_cpu_evidence",
-    "assets",
-    "source",
-    "operations",
-    "verification"
+    "schema", "schema_version", "task", "mode", "input", "analysis",
+    "pointers", "symbols", "cross_cpu_evidence", "assets", "source",
+    "operations", "verification"
   ],
   "properties": {
-    "schema": { "const": "retrolarium.megadrive.disassembly" },
+    "schema": { "const": "retrolarium.snes.disassembly" },
     "schema_version": { "const": 1 },
-    "task": { "const": "megadrive.disassemble" },
+    "task": { "const": "snes.disassemble" },
     "mode": { "const": "blind" },
     "input": {
       "type": "object",
       "required": [
-        "schema", "schema_version", "sha256", "size", "byte_order", "cpu",
-        "header", "vectors", "regions", "address_ranges"
+        "schema", "schema_version", "container_sha256", "container_size",
+        "rom_sha256", "rom_size", "copier_header_size", "byte_order", "cpu",
+        "mapping", "header", "vectors", "regions", "bus_windows"
       ],
       "properties": {
-        "schema": { "const": "retrolarium.megadrive.image" },
+        "schema": { "const": "retrolarium.snes.image" },
         "schema_version": { "const": 1 },
-        "sha256": { "$ref": "#/$defs/sha256" },
-        "size": { "type": "integer", "minimum": 512 },
-        "byte_order": { "const": "big" },
-        "cpu": { "const": "m68000" }
+        "container_sha256": { "$ref": "#/$defs/sha256" },
+        "container_size": { "type": "integer", "minimum": 32768 },
+        "rom_sha256": { "$ref": "#/$defs/sha256" },
+        "rom_size": { "type": "integer", "minimum": 32768 },
+        "copier_header_size": { "enum": [0, 512] },
+        "byte_order": { "const": "little" },
+        "cpu": { "const": "w65c816" },
+        "mapping": { "enum": ["lorom", "hirom"] }
       }
     },
     "analysis": { "$ref": "#/$defs/hashedArtifact" },
@@ -49,24 +44,29 @@
       "properties": {
         "schema": { "const": "retrolarium.assets" },
         "schema_version": { "const": 1 },
-        "items": { "type": "array", "minItems": 1 }
+        "items": { "type": "array" }
       }
     },
     "source": {
       "type": "object",
-      "required": ["dialect", "directory", "units", "coverage", "instruction_encoding"],
+      "required": [
+        "dialect", "directory", "units", "header_unit", "coverage",
+        "whole_rom_fallback", "emission"
+      ],
       "properties": {
-        "dialect": { "const": "asm68k-exact-first" },
+        "dialect": { "const": "ca65" },
         "units": {
           "type": "array",
           "minItems": 1,
           "items": { "type": "string", "minLength": 1 }
         },
+        "whole_rom_fallback": { "const": false },
         "coverage": {
           "type": "object",
           "required": [
-            "rom_bytes", "vector_bytes", "instruction_bytes", "pointer_bytes",
-            "asset_bytes", "raw_bytes"
+            "rom_bytes", "copier_header_bytes", "instruction_bytes",
+            "instruction_fallback_bytes", "pointer_bytes", "header_bytes",
+            "raw_bytes"
           ]
         }
       }
