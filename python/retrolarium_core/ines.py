@@ -95,7 +95,7 @@ def region(name: str, offset: int, payload: bytes) -> ImageRegion:
     return ImageRegion(name, offset, len(payload), digest(payload))
 
 
-def parse_ines(data: bytes, source: Path | None = None) -> InesImage:
+def _declared_size(data: bytes) -> int:
     if len(data) < 16 or data[:4] != b"NES\x1a":
         raise InesError("missing iNES magic")
     header = data[:16]
@@ -106,15 +106,25 @@ def parse_ines(data: bytes, source: Path | None = None) -> InesImage:
     if header[4] == 0:
         raise InesError("iNES image declares no PRG ROM")
 
-    mapper = (flags6 >> 4) | (flags7 & 0xF0)
     trainer_size = 512 if flags6 & 0x04 else 0
     prg_size = header[4] * 0x4000
     chr_size = header[5] * 0x2000
-    expected_size = 16 + trainer_size + prg_size + chr_size
+    return 16 + trainer_size + prg_size + chr_size
+
+
+def parse_ines(data: bytes, source: Path | None = None) -> InesImage:
+    expected_size = _declared_size(data)
     if len(data) != expected_size:
         raise InesError(
             f"image size is {len(data)}, header describes {expected_size} bytes"
         )
+    header = data[:16]
+    flags6 = header[6]
+    flags7 = header[7]
+    mapper = (flags6 >> 4) | (flags7 & 0xF0)
+    trainer_size = 512 if flags6 & 0x04 else 0
+    prg_size = header[4] * 0x4000
+    chr_size = header[5] * 0x2000
 
     cursor = 16
     trainer = data[cursor:cursor + trainer_size]
@@ -140,6 +150,19 @@ def parse_ines(data: bytes, source: Path | None = None) -> InesImage:
         battery=bool(flags6 & 0x02),
         sha256=digest(data),
     )
+
+
+def parse_ines_prefix(
+    data: bytes, source: Path | None = None
+) -> tuple[InesImage, bytes]:
+    """Parse an iNES image embedded at the start of a larger container."""
+
+    expected_size = _declared_size(data)
+    if len(data) < expected_size:
+        raise InesError(
+            f"image size is {len(data)}, header describes {expected_size} bytes"
+        )
+    return parse_ines(data[:expected_size], source), data[expected_size:]
 
 
 def load_ines(path: Path) -> InesImage:
