@@ -69,6 +69,9 @@ int main(int argc, char *argv[])
     }
 
     std::string name;
+    bool encoding = false;
+    std::vector<std::uint8_t> plain;
+    std::vector<std::uint8_t> reference;
     std::vector<std::uint8_t> compressed;
     std::vector<std::uint8_t> expected;
     bool haveStream = false;
@@ -96,11 +99,23 @@ int main(int argc, char *argv[])
             }
         } else if (key == "schema_version" || key == "generator") {
             continue;
-        } else if (key == "case") {
+        } else if (key == "case" || key == "encode-case") {
             fields >> name;
+            encoding = key == "encode-case";
+            plain.clear();
+            reference.clear();
             compressed.clear();
             expected.clear();
             haveStream = false;
+        } else if (key == "plain") {
+            std::string value;
+            fields >> value;
+            plain = fromHex(value);
+            haveStream = true;
+        } else if (key == "reference") {
+            std::string value;
+            fields >> value;
+            reference = fromHex(value);
         } else if (key == "stream") {
             std::string value;
             fields >> value;
@@ -118,10 +133,19 @@ int main(int argc, char *argv[])
             }
             ++cases;
             try {
-                const auto actual = retrolarium::core::nemesisDecompress(compressed);
+                const auto actual = encoding
+                    ? retrolarium::core::nemesisCompress(plain, reference)
+                    : retrolarium::core::nemesisDecompress(compressed);
                 if (actual != expected) {
                     std::cerr << "FAIL: " << name << "\n  got    " << toHex(actual)
                               << "\n  wanted " << toHex(expected) << '\n';
+                    ++failures;
+                }
+                if (encoding
+                    && retrolarium::core::nemesisDecompress(actual) != plain) {
+                    // A re-encoded stream must decode back to what it was given,
+                    // or agreeing with the oracle would prove nothing.
+                    std::cerr << "FAIL: " << name << " does not round-trip\n";
                     ++failures;
                 }
             } catch (const retrolarium::core::NemesisError &error) {

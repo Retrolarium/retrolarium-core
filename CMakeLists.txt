@@ -32,6 +32,10 @@ add_library(retrolarium_core STATIC
     src/enigma_encode.cpp
     src/ines.cpp
     src/nemesis.cpp
+    src/nes_nametable.cpp
+    src/nes_palette.cpp
+    src/nes_tiles.cpp
+    src/nemesis_encode.cpp
     src/sha256.cpp
 )
 add_library(retrolarium::core ALIAS retrolarium_core)
@@ -78,5 +82,25 @@ if(RETROLARIUM_CORE_BUILD_TESTS AND BUILD_TESTING)
     add_test(NAME core.enigma_parity
         COMMAND retrolarium-core-enigma-golden-tests
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/enigma_golden.txt
+    )
+
+    add_executable(retrolarium-core-nes-tiles-golden-tests
+        tests/nes_tiles_golden_test.cpp)
+    target_link_libraries(retrolarium-core-nes-tiles-golden-tests
+        PRIVATE retrolarium_core)
+    retrolarium_core_enable_warnings(retrolarium-core-nes-tiles-golden-tests)
+    add_test(NAME core.nes_tiles_parity
+        COMMAND retrolarium-core-nes-tiles-golden-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nes_tiles_golden.txt
+    )
+
+    add_executable(retrolarium-core-nes-surfaces-golden-tests
+        tests/nes_surfaces_golden_test.cpp)
+    target_link_libraries(retrolarium-core-nes-surfaces-golden-tests
+        PRIVATE retrolarium_core)
+    retrolarium_core_enable_warnings(retrolarium-core-nes-surfaces-golden-tests)
+    add_test(NAME core.nes_surfaces_parity
+        COMMAND retrolarium-core-nes-surfaces-golden-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nes_surfaces_golden.txt
     )
 endif()

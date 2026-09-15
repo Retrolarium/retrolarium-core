@@ -23,6 +23,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "retrolarium_kit" / "src"))
 
 from retrolarium_kit.oracles.nemesis import decompress  # noqa: E402
+from retrolarium_kit.oracles.nemesis_encode import compress  # noqa: E402
 
 SCHEMA = "retrolarium.nemesis-golden"
 SCHEMA_VERSION = 1
@@ -152,6 +153,68 @@ def cases() -> list[dict]:
     return result
 
 
+def encode_cases() -> list[dict]:
+    """Re-encoding pins: same plain data, same reference, same output bytes.
+
+    Nemesis cannot compress without a reference, so each case supplies one and
+    the encoder reuses its header and code table.
+    """
+
+    result = []
+
+    def case(name: str, reference: bytes, mutate=None) -> None:
+        plain = bytearray(decompress(reference))
+        if mutate is not None:
+            mutate(plain)
+        encoded = compress(bytes(plain), reference)
+        if decompress(encoded) != bytes(plain):
+            raise SystemExit(f"encode case {name} does not round-trip")
+        result.append({
+            "name": name,
+            "plain": bytes(plain),
+            "reference": reference,
+            "expect": encoded,
+        })
+
+    flat = build_stream(1, False, [(5, 8)] * 8)
+    mixed = build_stream(1, False, [(1, 4), (2, 4), (3, 8), (4, 8),
+                                    (1, 8), (2, 8), (3, 8), (4, 8),
+                                    (5, 4), (5, 4)])
+    xor = build_stream(1, True, [(3, 8), (12, 8)] * 4)
+    two = build_stream(2, False, [(1, 8), (2, 8)] * 8)
+
+    # Unchanged content: the encoder still re-encodes rather than echoing.
+    case("unchanged-flat", flat)
+    case("unchanged-mixed", mixed)
+    case("unchanged-xor", xor)
+    case("unchanged-two-tiles", two)
+
+    # Edited content, which is what forces a genuine re-encode.
+    def touch_first(buffer: bytearray) -> None:
+        buffer[0] ^= 0xF0
+
+    def touch_last(buffer: bytearray) -> None:
+        buffer[-1] ^= 0x0F
+
+    def scramble(buffer: bytearray) -> None:
+        for index in range(0, len(buffer), 3):
+            buffer[index] = (buffer[index] + 0x11) & 0xFF
+
+    case("edited-flat", flat, touch_first)
+    case("edited-mixed", mixed, touch_last)
+    case("edited-xor", xor, touch_first)
+    case("scrambled-two-tiles", two, scramble)
+
+    # Content the reference's table cannot describe, forcing inline runs.
+    def unknown_nybbles(buffer: bytearray) -> None:
+        for index in range(len(buffer)):
+            buffer[index] = 0xAB
+
+    case("forces-inline-runs", flat, unknown_nybbles)
+
+    return result
+
+
 def render() -> str:
     lines = [
         f"schema {SCHEMA}",
@@ -161,6 +224,12 @@ def render() -> str:
     for entry in cases():
         lines.append(f"case {entry['name']}")
         lines.append(f"stream {entry['stream'].hex()}")
+        lines.append(f"expect {entry['expect'].hex()}")
+        lines.append("end")
+    for entry in encode_cases():
+        lines.append(f"encode-case {entry['name']}")
+        lines.append(f"plain {entry['plain'].hex()}")
+        lines.append(f"reference {entry['reference'].hex()}")
         lines.append(f"expect {entry['expect'].hex()}")
         lines.append("end")
     return "\n".join(lines) + "\n"
@@ -191,7 +260,7 @@ def main(argv: list[str]) -> int:
 
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(corpus, encoding="utf-8", newline="\n")
-    print(f"{output}: {len(cases())} cases")
+    print(f"{output}: {len(cases())} decode cases, {len(encode_cases())} encode cases")
     return 0
 
 
