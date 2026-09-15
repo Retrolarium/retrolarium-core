@@ -1,0 +1,103 @@
+schema retrolarium.nes-text-golden
+schema_version 1
+generator retrolarium_kit.nes_text
+encoding upper
+characters  0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-x
+codes 36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74
+case-fold upper
+padding 36
+end
+encoding none
+characters  0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-x
+codes 36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74
+case-fold -
+padding 36
+end
+encoding lower
+characters  abcdefghijklmnopqrstuvwxyz0123456789
+codes 16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52
+case-fold lower
+padding 16
+end
+case plain
+encoding-key upper
+text HERO
+width 8
+payload 3b2f40373d242424
+decoded HERO
+end
+case exact-width
+encoding-key upper
+text WORLD 1-1
+width 9
+payload 453d403a3224264926
+decoded WORLD 1-1
+end
+case empty
+encoding-key upper
+text 
+width 6
+payload 242424242424
+decoded 
+end
+case case-folded-up
+encoding-key upper
+text hero
+width 8
+payload 3b2f40373d242424
+decoded HERO
+end
+case case-folded-down
+encoding-key lower
+text HERO
+width 8
+payload 1d1122191f101010
+decoded hero
+end
+case no-folding
+encoding-key none
+text ABC
+width 5
+payload 2f30312424
+decoded ABC
+end
+case digits
+encoding-key upper
+text 000000
+width 6
+payload 252525252525
+decoded 000000
+end
+case hyphen
+encoding-key upper
+text 1-2
+width 4
+payload 26492724
+decoded 1-2
+end
+case single-char
+encoding-key upper
+text X
+width 1
+payload 46
+decoded X
+end
+reject-case too-long
+encoding-key upper
+text SUPERLONG
+width 4
+end
+reject-case unsupported-character
+encoding-key upper
+text HERO!
+width 8
+end
+reject-case unfolded-lowercase
+encoding-key none
+text hero
+width 8
+end
+reject-decode unmapped
+encoding-key upper
+payload fe24
+end

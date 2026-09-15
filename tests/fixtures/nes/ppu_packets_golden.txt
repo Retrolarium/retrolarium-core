@@ -1,0 +1,74 @@
+schema retrolarium.nes-ppu-packets-golden
+schema_version 1
+generator retrolarium_kit.nes_screen_packets
+terminator 0
+case empty
+payload 00
+commands 
+trailing 
+end
+case single-horizontal
+payload 2000040102030400
+commands 8192:0:0:4:1,2,3,4
+trailing 
+end
+case vertical
+payload 23c082090900
+commands 9152:1:0:2:9,9
+trailing 
+end
+case repeat
+payload 2100505500
+commands 8448:0:1:16:85
+trailing 
+end
+case repeat-vertical
+payload 2200c8aa00
+commands 8704:1:1:8:170
+trailing 
+end
+case sequence
+payload 20000201022040450323c082ff0f00
+commands 8192:0:0:2:1,2;8256:0:1:5:3;9152:1:0:2:255,15
+trailing 
+end
+case trailing-padding
+payload 20000307070700deadbeef
+commands 8192:0:0:3:7,7,7
+trailing 222,173,190,239
+end
+case address-low
+payload 2000010100
+commands 8192:0:0:1:1
+trailing 
+end
+case address-high
+payload 3fff010100
+commands 16383:0:0:1:1
+trailing 
+end
+case length-one
+payload 2500014200
+commands 9472:0:0:1:66
+trailing 
+end
+case length-max
+payload 26003f000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e00
+commands 9728:0:0:63:0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62
+trailing 
+end
+reject-case no-terminator
+payload 2000020102
+end
+reject-case truncated-header
+payload 2000
+end
+reject-case truncated-values
+payload 2000040102
+end
+reject-case zero-length
+payload 2000000100
+end
+reject-case address-below-ppu
+payload 1fff010100
+end

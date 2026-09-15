@@ -34,6 +34,8 @@ add_library(retrolarium_core STATIC
     src/nemesis.cpp
     src/nes_nametable.cpp
     src/nes_palette.cpp
+    src/nes_ppu_packets.cpp
+    src/nes_text.cpp
     src/nes_tiles.cpp
     src/nemesis_encode.cpp
     src/sha256.cpp
@@ -102,5 +104,25 @@ if(RETROLARIUM_CORE_BUILD_TESTS AND BUILD_TESTING)
     add_test(NAME core.nes_surfaces_parity
         COMMAND retrolarium-core-nes-surfaces-golden-tests
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nes_surfaces_golden.txt
+    )
+
+    add_executable(retrolarium-core-nes-ppu-packets-golden-tests
+        tests/nes_ppu_packets_golden_test.cpp)
+    target_link_libraries(retrolarium-core-nes-ppu-packets-golden-tests
+        PRIVATE retrolarium_core)
+    retrolarium_core_enable_warnings(retrolarium-core-nes-ppu-packets-golden-tests)
+    add_test(NAME core.nes_ppu_packets_parity
+        COMMAND retrolarium-core-nes-ppu-packets-golden-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nes_ppu_packets_golden.txt
+    )
+
+    add_executable(retrolarium-core-nes-text-golden-tests
+        tests/nes_text_golden_test.cpp)
+    target_link_libraries(retrolarium-core-nes-text-golden-tests
+        PRIVATE retrolarium_core)
+    retrolarium_core_enable_warnings(retrolarium-core-nes-text-golden-tests)
+    add_test(NAME core.nes_text_parity
+        COMMAND retrolarium-core-nes-text-golden-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nes_text_golden.txt
     )
 endif()
