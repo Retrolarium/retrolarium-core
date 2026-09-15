@@ -1,0 +1,114 @@
+schema retrolarium.enigma-golden
+schema_version 1
+generator retrolarium_kit.oracles.enigma
+unreachable_modes 2,3
+case incrementing-run
+base_tile 0
+stream 0000010002001ff80000
+expect 01000101010201030104010501060107
+end
+case incrementing-run-mode1
+base_tile 0
+stream 0000010002004ff80000
+expect 0100010101020103
+end
+case repeat-decoded
+base_tile 0
+stream 0400000002008b3fc00000
+expect 000900090009000900090009
+end
+case decoded-ascending
+base_tile 0
+stream 040000000000a87fc00000
+expect 00030004000500060007
+end
+case decoded-descending
+base_tile 0
+stream 040000000000c83fc00000
+expect 00010000fffffffefffd
+end
+case inline-tiles
+base_tile 0
+stream 050000000000e6110c9fc00000
+expect 0001000200030004
+end
+case vflip-only
+base_tile 0
+stream 040100000000836fe00000
+expect 10061006
+end
+case hflip-only
+base_tile 0
+stream 040200000000836fe00000
+expect 08060806
+end
+case both-flips
+base_tile 0
+stream 04ff0000000083b7f00000
+expect 18061806
+end
+case negative-bit-count
+base_tile 0
+stream fc000000000084ffc00000
+expect 000700070007
+end
+case zero-bit-count
+base_tile 0
+stream 00000000000085fc0000
+expect 000000000000
+end
+case base-tile-offset
+base_tile 768
+stream 0400001000200a0aff0000
+expect 03100311031203050305
+end
+case mixed-commands
+base_tile 0
+stream 0400040005000a0952847f800000
+expect 0400040104020002000200080009000a04030404
+end
+case empty
+base_tile 0
+stream 000000000000fe0000
+expect 
+end
+encode-case ascending
+plain 0100010101020103010401050106010701080109010a010b010c010d010e010f
+expect 0900010001003ff8
+end
+encode-case repeated
+plain 004200420042004200420042004200420042004200420042
+expect 070000420042970bf8
+end
+encode-case descending
+plain 0210020f020e020d020c020b020a020902080207020602050204020302020201
+expect 0a0002010201df087f
+end
+encode-case two-runs
+plain 0010001100120013001400150016001700770077007700770077007700770077
+expect 0700001000771e3f7fe0
+end
+encode-case literals
+plain 00030009000100fa0011000400580002
+expect 080000020001ec061203f42208b007f0
+end
+encode-case single-word
+plain 0001
+expect 01000001000103f8
+end
+encode-case zero-word
+plain 00000000
+expect 01000000000082fe
+end
+encode-case long-run
+plain 0300030103020303030403050306030703080309030a030b030c030d030e030f0310031103120313031403150316031703180319031a031b031c031d031e031f0320032103220323032403250326032703280329032a032b032c032d032e032f
+expect 0a00030003003cf3ff80
+end
+encode-case tie-heavy
+plain 000500050006000600070007000500050006000600070007
+expect 030000050005f76edfdbb7ffc0
+end
+encode-case wide-words
+plain 7fff7ffe00017fff
+expect 0f0000017fffc3fffc081fffff80
+end

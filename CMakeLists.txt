@@ -28,6 +28,8 @@ function(retrolarium_core_enable_warnings target)
 endfunction()
 
 add_library(retrolarium_core STATIC
+    src/enigma.cpp
+    src/enigma_encode.cpp
     src/ines.cpp
     src/nemesis.cpp
     src/sha256.cpp
@@ -68,5 +70,13 @@ if(RETROLARIUM_CORE_BUILD_TESTS AND BUILD_TESTING)
     add_test(NAME core.nemesis_parity
         COMMAND retrolarium-core-nemesis-golden-tests
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nemesis_golden.txt
+    )
+
+    add_executable(retrolarium-core-enigma-golden-tests tests/enigma_golden_test.cpp)
+    target_link_libraries(retrolarium-core-enigma-golden-tests PRIVATE retrolarium_core)
+    retrolarium_core_enable_warnings(retrolarium-core-enigma-golden-tests)
+    add_test(NAME core.enigma_parity
+        COMMAND retrolarium-core-enigma-golden-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/enigma_golden.txt
     )
 endif()

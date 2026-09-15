@@ -1,11 +1,10 @@
-// Cross-language parity for the Nemesis decoder.
+// Cross-language parity for the Enigma decoder.
 //
-// retrolarium_core owns the implementation Retrolarium and its Kit both use;
-// retrolarium_kit/oracles/nemesis.py is kept as the independent reference the
-// port is checked against. The corpus comes from
-// retrolarium_core/tools/generate-nemesis-golden.py.
+// retrolarium_core owns the implementation; retrolarium_kit/oracles/enigma.py
+// is the independent reference it is checked against. The corpus comes from
+// retrolarium_core/tools/generate-enigma-golden.py.
 
-#include <retrolarium/core/nemesis.hpp>
+#include <retrolarium/core/enigma.hpp>
 
 #include <cstdint>
 #include <fstream>
@@ -58,7 +57,7 @@ std::string toHex(const std::vector<std::uint8_t> &data)
 int main(int argc, char *argv[])
 {
     if (argc != 2) {
-        std::cerr << "usage: retrolarium-core-nemesis-golden-tests <corpus.txt>\n";
+        std::cerr << "usage: retrolarium-core-enigma-golden-tests <corpus.txt>\n";
         return 2;
     }
 
@@ -69,8 +68,11 @@ int main(int argc, char *argv[])
     }
 
     std::string name;
+    bool encoding = false;
+    std::vector<std::uint8_t> plain;
     std::vector<std::uint8_t> compressed;
     std::vector<std::uint8_t> expected;
+    int baseTile = 0;
     bool haveStream = false;
     int cases = 0;
     std::string line;
@@ -78,8 +80,6 @@ int main(int argc, char *argv[])
 
     while (std::getline(stream, line)) {
         if (!line.empty() && line.back() == '\r') line.pop_back();
-        // An editor re-saving the corpus can prepend a UTF-8 BOM; skipping it
-        // beats failing with a confusing "unknown key" on the first line.
         if (firstLine && line.rfind(kBom, 0) == 0) line.erase(0, kBom.size());
         firstLine = false;
         if (line.empty()) continue;
@@ -90,17 +90,28 @@ int main(int argc, char *argv[])
         if (key == "schema") {
             std::string value;
             fields >> value;
-            if (value != "retrolarium.nemesis-golden") {
+            if (value != "retrolarium.enigma-golden") {
                 std::cerr << "FAIL: unexpected corpus schema " << value << '\n';
                 ++failures;
             }
-        } else if (key == "schema_version" || key == "generator") {
+        } else if (key == "schema_version" || key == "generator"
+            || key == "unreachable_modes") {
             continue;
-        } else if (key == "case") {
+        } else if (key == "case" || key == "encode-case") {
             fields >> name;
+            encoding = key == "encode-case";
+            plain.clear();
             compressed.clear();
             expected.clear();
+            baseTile = 0;
             haveStream = false;
+        } else if (key == "plain") {
+            std::string value;
+            fields >> value;
+            plain = fromHex(value);
+            haveStream = true;
+        } else if (key == "base_tile") {
+            fields >> baseTile;
         } else if (key == "stream") {
             std::string value;
             fields >> value;
@@ -118,13 +129,22 @@ int main(int argc, char *argv[])
             }
             ++cases;
             try {
-                const auto actual = retrolarium::core::nemesisDecompress(compressed);
+                const auto actual = encoding
+                    ? retrolarium::core::enigmaCompress(plain)
+                    : retrolarium::core::enigmaDecompress(compressed, baseTile);
                 if (actual != expected) {
                     std::cerr << "FAIL: " << name << "\n  got    " << toHex(actual)
                               << "\n  wanted " << toHex(expected) << '\n';
                     ++failures;
                 }
-            } catch (const retrolarium::core::NemesisError &error) {
+                if (encoding
+                    && retrolarium::core::enigmaDecompress(actual, 0) != plain) {
+                    // A stream the encoder emits must decode back to its input,
+                    // or agreeing with the oracle would prove nothing.
+                    std::cerr << "FAIL: " << name << " does not round-trip\n";
+                    ++failures;
+                }
+            } catch (const retrolarium::core::EnigmaError &error) {
                 std::cerr << "FAIL: " << name << " rejected: " << error.what() << '\n';
                 ++failures;
             }
@@ -139,9 +159,9 @@ int main(int argc, char *argv[])
         return 2;
     }
     if (failures != 0) {
-        std::cerr << failures << " Nemesis parity check(s) failed\n";
+        std::cerr << failures << " Enigma parity check(s) failed\n";
         return 1;
     }
-    std::cout << "Nemesis parity: " << cases << " cases\n";
+    std::cout << "Enigma parity: " << cases << " cases\n";
     return 0;
 }
