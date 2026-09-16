@@ -48,6 +48,7 @@ target_compile_features(retrolarium_json INTERFACE cxx_std_17)
 
 add_library(retrolarium_core STATIC
     src/enigma.cpp
+    src/fds.cpp
     src/enigma_encode.cpp
     src/ines.cpp
     src/nemesis.cpp
@@ -57,10 +58,13 @@ add_library(retrolarium_core STATIC
     src/nes_text.cpp
     src/nes_tiles.cpp
     src/nemesis_encode.cpp
+    src/resource_source.cpp
+    src/sha1.cpp
     src/sha256.cpp
     src/game_profile.cpp
     src/studio_project.cpp
     src/value.cpp
+    src/value_json.cpp
 )
 add_library(retrolarium::core ALIAS retrolarium_core)
 # PRIVATE: the TOML parser is an implementation detail of one source file.
@@ -113,6 +117,30 @@ if(RETROLARIUM_CORE_BUILD_TESTS AND BUILD_TESTING)
     target_link_libraries(retrolarium-core-sha256-tests PRIVATE retrolarium_core)
     retrolarium_core_enable_warnings(retrolarium-core-sha256-tests)
     add_test(NAME core.sha256 COMMAND retrolarium-core-sha256-tests)
+
+    add_executable(retrolarium-core-sha1-tests tests/sha1_test.cpp)
+    target_link_libraries(retrolarium-core-sha1-tests PRIVATE retrolarium_core)
+    retrolarium_core_enable_warnings(retrolarium-core-sha1-tests)
+    add_test(NAME core.sha1 COMMAND retrolarium-core-sha1-tests)
+
+    add_executable(retrolarium-core-fds-golden-tests tests/fds_golden_test.cpp)
+    target_link_libraries(retrolarium-core-fds-golden-tests PRIVATE retrolarium_core)
+    retrolarium_core_enable_warnings(retrolarium-core-fds-golden-tests)
+    add_test(NAME core.fds_parity
+        COMMAND retrolarium-core-fds-golden-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/fds_golden.txt
+    )
+
+    add_executable(retrolarium-core-resource-source-golden-tests
+        tests/resource_source_golden_test.cpp)
+    target_link_libraries(retrolarium-core-resource-source-golden-tests
+        PRIVATE retrolarium_core)
+    retrolarium_core_enable_warnings(
+        retrolarium-core-resource-source-golden-tests)
+    add_test(NAME core.resource_source_parity
+        COMMAND retrolarium-core-resource-source-golden-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/resource_source_golden.txt
+    )
 
     add_executable(retrolarium-core-ines-golden-tests tests/ines_golden_test.cpp)
     target_link_libraries(retrolarium-core-ines-golden-tests PRIVATE retrolarium_core)

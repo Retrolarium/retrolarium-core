@@ -78,71 +78,6 @@ bool isInteger(const Json *value)
     return value != nullptr && value->is_number_integer() && !value->is_boolean();
 }
 
-Value fromJson(const Json &value)
-{
-    switch (value.type()) {
-    case Json::value_t::null:
-        return Value();
-    case Json::value_t::boolean:
-        return Value::boolean(value.get<bool>());
-    case Json::value_t::number_integer:
-    case Json::value_t::number_unsigned:
-        return Value::integer(value.get<std::int64_t>());
-    case Json::value_t::number_float:
-        return Value::real(value.get<double>());
-    case Json::value_t::string:
-        return Value::string(value.get<std::string>());
-    case Json::value_t::array: {
-        std::vector<Value> items;
-        items.reserve(value.size());
-        for (const Json &item : value) {
-            items.push_back(fromJson(item));
-        }
-        return Value::array(std::move(items));
-    }
-    case Json::value_t::object: {
-        std::map<std::string, Value> members;
-        for (auto entry = value.begin(); entry != value.end(); ++entry) {
-            members.emplace(entry.key(), fromJson(entry.value()));
-        }
-        return Value::object(std::move(members));
-    }
-    default:
-        fail("game profile carries an unsupported JSON value");
-    }
-}
-
-Json toJson(const Value &value)
-{
-    switch (value.kind()) {
-    case Value::Kind::Null:
-        return nullptr;
-    case Value::Kind::Boolean:
-        return value.asBoolean();
-    case Value::Kind::Integer:
-        return value.asInteger();
-    case Value::Kind::Double:
-        return value.asDouble();
-    case Value::Kind::String:
-        return value.asString();
-    case Value::Kind::Array: {
-        Json array = Json::array();
-        for (const Value &item : value.asArray()) {
-            array.push_back(toJson(item));
-        }
-        return array;
-    }
-    case Value::Kind::Object: {
-        Json object = Json::object();
-        for (const auto &entry : value.asObject()) {
-            object[entry.first] = toJson(entry.second);
-        }
-        return object;
-    }
-    }
-    return nullptr;
-}
-
 std::map<std::string, Value> parameters(const Json &item, const std::string &name)
 {
     const Json *raw = member(item, "parameters");
@@ -152,7 +87,7 @@ std::map<std::string, Value> parameters(const Json &item, const std::string &nam
     }
     std::map<std::string, Value> result;
     for (auto entry = raw->begin(); entry != raw->end(); ++entry) {
-        result.emplace(entry.key(), fromJson(entry.value()));
+        result.emplace(entry.key(), parseValue(entry.value().dump()));
     }
     return result;
 }
@@ -420,6 +355,24 @@ std::vector<ResourceSpec> GameProfile::resourcesFor(
     return merged;
 }
 
+const PayloadSpec &GameProfile::payload(
+    const RevisionSpec &revision, const std::string &payloadId) const
+{
+    std::size_t matches = 0;
+    const PayloadSpec *found = nullptr;
+    for (const PayloadSpec &candidate : revision.payloads) {
+        if (candidate.payloadId == payloadId) {
+            ++matches;
+            found = &candidate;
+        }
+    }
+    if (matches != 1) {
+        fail("unknown payload '" + payloadId + "' in " + gameId + "/"
+            + revision.revisionId);
+    }
+    return *found;
+}
+
 GameProfile parseGameProfile(const std::string &json)
 {
     Json document;
@@ -591,7 +544,9 @@ Json renderParameters(const std::map<std::string, Value> &values)
 {
     Json object = Json::object();
     for (const auto &entry : values) {
-        object[entry.first] = toJson(entry.second);
+        // Round-tripped through text so the conversion lives in exactly
+        // one place; profiles are parsed once, so the cost is nothing.
+        object[entry.first] = Json::parse(renderValue(entry.second));
     }
     return object;
 }

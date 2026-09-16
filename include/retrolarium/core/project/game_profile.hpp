@@ -87,6 +87,8 @@ struct GameProfile final {
     // profile's with the revision's overrides merged in.
     [[nodiscard]] std::vector<ResourceSpec> resourcesFor(
         const RevisionSpec &revision) const;
+    [[nodiscard]] const PayloadSpec &payload(
+        const RevisionSpec &revision, const std::string &payloadId) const;
 };
 
 [[nodiscard]] GameProfile parseGameProfile(const std::string &json);

@@ -7,12 +7,12 @@
 
 namespace retrolarium::core {
 
-// The core cannot use QCryptographicHash: it must build and run without Qt so
-// the same sources can produce both the rlcore executable and the static
-// library linked into the Qt application.
-class Sha256 final {
+// Profiles record a payload's SHA-1 alongside its SHA-256, so verifying one
+// needs both. Same reason as Sha256 for not reaching for QCryptographicHash:
+// the core builds and runs without Qt.
+class Sha1 final {
 public:
-    Sha256() noexcept;
+    Sha1() noexcept;
 
     void update(const std::uint8_t *data, std::size_t size) noexcept;
     void update(const std::vector<std::uint8_t> &data) noexcept;
@@ -23,13 +23,13 @@ public:
 private:
     void compress(const std::uint8_t block[64]) noexcept;
 
-    std::uint32_t state_[8];
+    std::uint32_t state_[5];
     std::uint8_t buffer_[64];
     std::size_t buffered_ = 0;
     std::uint64_t length_ = 0;
 };
 
-[[nodiscard]] std::string sha256Hex(const std::uint8_t *data, std::size_t size);
-[[nodiscard]] std::string sha256Hex(const std::vector<std::uint8_t> &data);
+[[nodiscard]] std::string sha1Hex(const std::uint8_t *data, std::size_t size);
+[[nodiscard]] std::string sha1Hex(const std::vector<std::uint8_t> &data);
 
 } // namespace retrolarium::core

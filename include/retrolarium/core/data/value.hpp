@@ -70,4 +70,13 @@ private:
     std::map<std::string, Value> object_;
 };
 
+// JSON is how these values reach the core and how they are compared against
+// the Kit, but the parser stays out of this header: it is large, and only a
+// handful of translation units should pay for it.
+[[nodiscard]] Value parseValue(const std::string &json);
+
+// Rendered the way `json.dumps(value, indent=2, sort_keys=True)` renders it,
+// which is what makes a document comparable to the Kit's byte for byte.
+[[nodiscard]] std::string renderValue(const Value &value);
+
 } // namespace retrolarium::core
