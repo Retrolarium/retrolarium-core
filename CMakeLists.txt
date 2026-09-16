@@ -47,6 +47,7 @@ target_include_directories(retrolarium_json
 target_compile_features(retrolarium_json INTERFACE cxx_std_17)
 
 add_library(retrolarium_core STATIC
+    src/build_plan.cpp
     src/enigma.cpp
     src/fds.cpp
     src/enigma_encode.cpp

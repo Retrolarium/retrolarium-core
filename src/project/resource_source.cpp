@@ -201,6 +201,67 @@ std::vector<EncodedSpan> encodedResourceSpans(
     return result;
 }
 
+std::vector<PhysicalReplacement> physicalReplacements(
+    const std::vector<std::uint8_t> &source, const GameProfile &profile,
+    const RevisionSpec &revision, const ResourceSpec &resource,
+    const std::vector<EncodedSpan> &replacements)
+{
+    std::vector<PhysicalReplacement> result;
+    for (const EncodedSpan &item : replacements) {
+        // A resource with no payload is addressed in the file directly, and
+        // then the span offset already is the file offset.
+        const PayloadSpec *payload = nullptr;
+        try {
+            if (item.payloadId.empty()) {
+                if (!resource.hasPayload) {
+                    if (revision.container == "fds") {
+                        fail("FDS resource " + resource.resourceId
+                            + " must select a named payload");
+                    }
+                    result.push_back({item.offset, item.replacement});
+                    continue;
+                }
+                payload = &profile.payload(revision, resource.payload);
+            } else {
+                payload = &profile.payload(revision, item.payloadId);
+            }
+        } catch (const AuthoringError &error) {
+            fail(error.what());
+        }
+
+        if (item.offset + item.replacement.size()
+            > static_cast<std::size_t>(payload->size)) {
+            fail("resource " + resource.resourceId + " exceeds payload "
+                + payload->payloadId);
+        }
+
+        if (payload->storage == "range") {
+            result.push_back({static_cast<std::size_t>(payload->fileOffset)
+                    + item.offset,
+                item.replacement});
+        } else if (payload->storage == "fds-records") {
+            std::vector<int> recordIds;
+            for (const std::int64_t record : payload->recordIds) {
+                recordIds.push_back(static_cast<int>(record));
+            }
+            try {
+                for (const FdsPayloadRange &range : fdsPayloadRanges(source,
+                         recordIds, item.offset, item.replacement.size())) {
+                    const auto begin = item.replacement.begin()
+                        + static_cast<std::ptrdiff_t>(range.payloadOffset);
+                    result.push_back({range.fileOffset,
+                        {begin, begin + static_cast<std::ptrdiff_t>(range.size)}});
+                }
+            } catch (const FdsError &error) {
+                fail(error.what());
+            }
+        } else {
+            fail("unsupported payload storage '" + payload->storage + "'");
+        }
+    }
+    return result;
+}
+
 ResourceSpan resourceParameterSpan(
     const ResourceSpec &resource, std::size_t expectedSize)
 {

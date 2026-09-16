@@ -63,6 +63,19 @@ struct RevisionImage final {
     const std::vector<std::uint8_t> &payload,
     const std::vector<ResourceSpan> &spans);
 
+// One run of replacement bytes and where it goes in the file.
+struct PhysicalReplacement final {
+    std::size_t fileOffset = 0;
+    std::vector<std::uint8_t> bytes;
+};
+
+// Turns payload-relative replacements into file offsets. An FDS payload is
+// spread across several file records, so one span can come back as several.
+[[nodiscard]] std::vector<PhysicalReplacement> physicalReplacements(
+    const std::vector<std::uint8_t> &source, const GameProfile &profile,
+    const RevisionSpec &revision, const ResourceSpec &resource,
+    const std::vector<EncodedSpan> &replacements);
+
 // The single span a fixed-size resource declares through its parameters.
 [[nodiscard]] ResourceSpan resourceParameterSpan(
     const ResourceSpec &resource, std::size_t expectedSize);
