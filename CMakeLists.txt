@@ -58,7 +58,9 @@ add_library(retrolarium_core STATIC
     src/nes_tiles.cpp
     src/nemesis_encode.cpp
     src/sha256.cpp
+    src/game_profile.cpp
     src/studio_project.cpp
+    src/value.cpp
 )
 add_library(retrolarium::core ALIAS retrolarium_core)
 # PRIVATE: the TOML parser is an implementation detail of one source file.
@@ -94,6 +96,17 @@ if(RETROLARIUM_CORE_BUILD_TESTS AND BUILD_TESTING)
         COMMAND retrolarium-core-studio-project-golden-tests
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/studio_project_golden.txt
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/studio_projects
+    )
+
+    add_executable(retrolarium-core-game-profile-golden-tests
+        tests/game_profile_golden_test.cpp)
+    target_link_libraries(retrolarium-core-game-profile-golden-tests
+        PRIVATE retrolarium_core)
+    retrolarium_core_enable_warnings(retrolarium-core-game-profile-golden-tests)
+    add_test(NAME core.game_profile_parity
+        COMMAND retrolarium-core-game-profile-golden-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/game_profile_golden.txt
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/game_profiles
     )
 
     add_executable(retrolarium-core-sha256-tests tests/sha256_test.cpp)

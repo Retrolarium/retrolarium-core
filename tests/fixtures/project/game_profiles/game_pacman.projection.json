@@ -1,0 +1,644 @@
+{
+  "capabilities": [
+    "levels",
+    "graphics",
+    "animations",
+    "palettes",
+    "screens",
+    "text",
+    "audio"
+  ],
+  "id": "pacman",
+  "name": "Pac-Man (NES)",
+  "platform": "nes",
+  "profile_version": 1,
+  "resources": [
+    {
+      "capacity_policy": "fixed",
+      "codec": "nes.resource-bundle.v1",
+      "id": "authoring-bundle",
+      "kind": "resource-bundle",
+      "parameters": {},
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "pacman.maze-rle.v1",
+      "id": "maze",
+      "kind": "level",
+      "parameters": {
+        "file_offset": 11400,
+        "height": 27,
+        "size": 416,
+        "tokens": 416,
+        "width": 22
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "pacman.palette-table.v1",
+      "id": "title-background",
+      "kind": "palette",
+      "parameters": {
+        "entries": 16,
+        "file_offset": 933,
+        "mirror_pairs": [],
+        "size": 16
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "pacman.screen-collection.v1",
+      "id": "screen-content",
+      "kind": "screen",
+      "parameters": {
+        "attract": {
+          "packet_file_offsets": [
+            1527,
+            1551,
+            1566,
+            1577,
+            1592,
+            1602,
+            1617,
+            1628,
+            1643,
+            1654
+          ],
+          "payload_sizes": [
+            21,
+            11,
+            8,
+            11,
+            7,
+            11,
+            8,
+            11,
+            8,
+            31
+          ],
+          "pointer_file_offset": 1507
+        },
+        "encoding": {
+          "case_fold": "upper",
+          "characters": " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.;",
+          "codes": [
+            32,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89,
+            90,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            46,
+            59
+          ],
+          "padding": 32
+        },
+        "fixed_blocks": [
+          {
+            "file_offset": 1117,
+            "key": "menu_prompt",
+            "label": "Menu prompt",
+            "size": 8
+          },
+          {
+            "file_offset": 1125,
+            "key": "player_count_glyphs",
+            "label": "Player-count glyphs",
+            "size": 3
+          },
+          {
+            "file_offset": 9414,
+            "key": "hud_blocks",
+            "label": "HUD blocks",
+            "size": 23
+          },
+          {
+            "file_offset": 4190,
+            "key": "hud_player_packets",
+            "label": "HUD player packets",
+            "size": 18
+          },
+          {
+            "file_offset": 2721,
+            "key": "pause_tiles",
+            "label": "Pause visible/blank packets",
+            "size": 12
+          }
+        ],
+        "intermission_visual": [
+          {
+            "allowed_values": [],
+            "file_offset": 10858,
+            "key": "cycle_tiles",
+            "size": 8
+          },
+          {
+            "allowed_values": [
+              0,
+              4,
+              8
+            ],
+            "file_offset": 10949,
+            "key": "cycle_pattern_indexes",
+            "size": 8
+          },
+          {
+            "allowed_values": [],
+            "file_offset": 10957,
+            "key": "banner_tile_quads",
+            "size": 12
+          }
+        ],
+        "prg_cpu_base": 49152,
+        "prg_file_offset": 16,
+        "read_only_tables": [
+          {
+            "count": 3,
+            "cpu_address": 59241,
+            "key": "scene_dispatch",
+            "kind": "words"
+          },
+          {
+            "count": 4,
+            "cpu_address": 59262,
+            "key": "scene_0_states",
+            "kind": "words"
+          },
+          {
+            "count": 3,
+            "cpu_address": 59490,
+            "key": "scene_1_states",
+            "kind": "words"
+          },
+          {
+            "count": 4,
+            "cpu_address": 59657,
+            "key": "scene_2_states",
+            "kind": "words"
+          },
+          {
+            "count": 3,
+            "cpu_address": 59951,
+            "key": "animation_scene_dispatch",
+            "kind": "words"
+          },
+          {
+            "count": 4,
+            "cpu_address": 59972,
+            "key": "animation_scene_0_states",
+            "kind": "words"
+          },
+          {
+            "count": 3,
+            "cpu_address": 60120,
+            "key": "animation_scene_1_states",
+            "kind": "words"
+          },
+          {
+            "count": 4,
+            "cpu_address": 60168,
+            "key": "animation_scene_2_states",
+            "kind": "words"
+          }
+        ],
+        "text_fields": [
+          {
+            "key": "title-one-player",
+            "label": "Title: 1 PLAYER",
+            "path": [
+              "title_packets",
+              1,
+              "bytes"
+            ],
+            "start": 2,
+            "width": 8
+          },
+          {
+            "key": "title-two-players",
+            "label": "Title: 2 PLAYERS",
+            "path": [
+              "title_packets",
+              2,
+              "bytes"
+            ],
+            "start": 0,
+            "width": 9
+          },
+          {
+            "key": "title-copyright",
+            "label": "Title: copyright line",
+            "path": [
+              "title_packets",
+              4,
+              "bytes"
+            ],
+            "start": 1,
+            "width": 20
+          },
+          {
+            "key": "title-rights",
+            "label": "Title: rights line",
+            "path": [
+              "title_packets",
+              5,
+              "bytes"
+            ],
+            "start": 0,
+            "width": 19
+          },
+          {
+            "key": "attract-header",
+            "label": "Attract: character header",
+            "path": [
+              "attract_packets",
+              0,
+              "bytes"
+            ],
+            "start": 0,
+            "width": 21
+          },
+          {
+            "key": "attract-chaser",
+            "label": "Attract: CHASER",
+            "path": [
+              "attract_packets",
+              1,
+              "bytes"
+            ],
+            "start": 0,
+            "width": 11
+          },
+          {
+            "key": "attract-red",
+            "label": "Attract: RED",
+            "path": [
+              "attract_packets",
+              2,
+              "bytes"
+            ],
+            "start": 1,
+            "width": 6
+          },
+          {
+            "key": "attract-ambusher",
+            "label": "Attract: AMBUSHER",
+            "path": [
+              "attract_packets",
+              3,
+              "bytes"
+            ],
+            "start": 0,
+            "width": 11
+          },
+          {
+            "key": "attract-pink",
+            "label": "Attract: PINK",
+            "path": [
+              "attract_packets",
+              4,
+              "bytes"
+            ],
+            "start": 1,
+            "width": 5
+          },
+          {
+            "key": "attract-feigner",
+            "label": "Attract: FEIGNER",
+            "path": [
+              "attract_packets",
+              7,
+              "bytes"
+            ],
+            "start": 0,
+            "width": 11
+          },
+          {
+            "key": "attract-orange",
+            "label": "Attract: ORANGE",
+            "path": [
+              "attract_packets",
+              8,
+              "bytes"
+            ],
+            "start": 1,
+            "width": 6
+          },
+          {
+            "key": "points-ten",
+            "label": "Attract: 10 PTS",
+            "path": [
+              "attract_packets",
+              9,
+              "bytes"
+            ],
+            "start": 2,
+            "width": 6
+          },
+          {
+            "key": "points-fifty",
+            "label": "Attract: 50 PTS",
+            "path": [
+              "attract_packets",
+              9,
+              "bytes"
+            ],
+            "start": 13,
+            "width": 6
+          },
+          {
+            "key": "pause",
+            "label": "Gameplay: PAUSE",
+            "path": [
+              "fixed_blocks",
+              "pause_tiles"
+            ],
+            "start": 0,
+            "width": 5
+          }
+        ],
+        "title_attributes": {
+          "file_offset": 949,
+          "ppu_address": 9160,
+          "size": 24
+        },
+        "title_logo": {
+          "file_offset": 687,
+          "height": 6,
+          "ppu_address": 8421,
+          "width": 23
+        },
+        "title_packets": {
+          "file_offset": 825,
+          "payload_sizes": [
+            21,
+            10,
+            9,
+            9,
+            22,
+            19
+          ]
+        }
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "pacman.sound-streams.v1",
+      "id": "sound-streams",
+      "kind": "audio",
+      "parameters": {
+        "arena_cpu_address": 61614,
+        "arena_file_offset": 12478,
+        "capacity": 890,
+        "labels": [
+          "Player ready channel A",
+          "Player ready channel B",
+          "Extra life",
+          "Death",
+          "Pellet even",
+          "Pellet odd",
+          "Fruit",
+          "Eat ghost",
+          "Ghost house state 6 marker",
+          "Ghost house release marker",
+          "Release counter high",
+          "Release counter middle",
+          "Release counter low",
+          "Intermission flag A",
+          "Intermission flag B",
+          "Pause toggle"
+        ],
+        "pointer_file_offset": 12446,
+        "storage_order": [
+          2,
+          6,
+          10,
+          11,
+          12,
+          9,
+          7,
+          13,
+          14,
+          8,
+          3,
+          0,
+          1,
+          4,
+          5,
+          15
+        ],
+        "trailing_sizes": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          2
+        ]
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "pacman.palette-table.v1",
+      "id": "attract-bg-sprite",
+      "kind": "palette",
+      "parameters": {
+        "entries": 32,
+        "file_offset": 1475,
+        "mirror_pairs": [
+          [
+            0,
+            16
+          ],
+          [
+            4,
+            20
+          ],
+          [
+            8,
+            24
+          ],
+          [
+            12,
+            28
+          ]
+        ],
+        "size": 32
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "pacman.palette-table.v1",
+      "id": "round-gameplay",
+      "kind": "palette",
+      "parameters": {
+        "entries": 32,
+        "file_offset": 4208,
+        "mirror_pairs": [
+          [
+            0,
+            16
+          ],
+          [
+            4,
+            20
+          ],
+          [
+            8,
+            24
+          ],
+          [
+            12,
+            28
+          ]
+        ],
+        "size": 32
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "pacman.palette-table.v1",
+      "id": "frightened-active-normal",
+      "kind": "palette",
+      "parameters": {
+        "entries": 2,
+        "mirror_pairs": [],
+        "replicated_file_offsets": [
+          [
+            4632,
+            8302
+          ],
+          [
+            4637
+          ]
+        ]
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "pacman.palette-table.v1",
+      "id": "intermission-sprites",
+      "kind": "palette",
+      "parameters": {
+        "entries": 16,
+        "file_offset": 10059,
+        "mirror_pairs": [],
+        "size": 16
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "pacman.palette-table.v1",
+      "id": "fruit-by-stage",
+      "kind": "palette",
+      "parameters": {
+        "entries": 16,
+        "file_offset": 9813,
+        "mirror_pairs": [],
+        "size": 16
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "nes.chr-2bpp.v1",
+      "id": "character-graphics",
+      "kind": "graphics",
+      "parameters": {
+        "file_offset": 16400,
+        "size": 8192
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "pacman.actor-mapping.v1",
+      "id": "actor-frames",
+      "kind": "animation",
+      "parameters": {
+        "file_offset": 7017,
+        "size": 624
+      },
+      "payload": null
+    }
+  ],
+  "revisions": [
+    {
+      "capabilities": null,
+      "container": "ines",
+      "id": "japan-v10",
+      "mapper": 0,
+      "merged_resources": null,
+      "name": "Pac-Man Japan v1.0",
+      "payloads": [],
+      "resource_overrides": [],
+      "resources": null,
+      "sha1": "adb4d7d7d28c89ca177aad231e0fdad992c0fbfb",
+      "sha256": "c67e20d7144dac97ba9d4cef1ad90f13d6504e8492e60a6193c33695d68c4b22",
+      "size": 24592
+    },
+    {
+      "capabilities": null,
+      "container": "ines",
+      "id": "japan-v11",
+      "mapper": 0,
+      "merged_resources": null,
+      "name": "Pac-Man Japan v1.1",
+      "payloads": [],
+      "resource_overrides": [],
+      "resources": null,
+      "sha1": "b8be2bffb4592873cc211becb529bf64071c7f90",
+      "sha256": "06ed4f706d87940728d623d289caa7fd0abd5c0d6466cb52d4c491ff3b8c0ed9",
+      "size": 24592
+    }
+  ]
+}
