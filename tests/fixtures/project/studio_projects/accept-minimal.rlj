@@ -1,0 +1,24 @@
+schema = "retrolarium.project"
+schema_version = 1
+
+[project]
+id = "pacman"
+name = "Pac-Man"
+platform = "nes"
+profile = "pacman"
+source_mode = "binary-profile"
+
+[source]
+disassembly = "disassembly/manifest.json"
+sha256 = "2e3b9b749cf26d221642000d503245debc97955357d42a57f9e463b76dfe3896"
+
+[workspace]
+layout = "auto"
+
+[[workspace.tabs]]
+id = "maze"
+title = "Maze"
+kind = "level.tile-grid"
+group = "content"
+codec = "pacman.maze-rle.v1"
+document = "documents/levels.toml"

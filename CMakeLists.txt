@@ -27,6 +27,18 @@ function(retrolarium_core_enable_warnings target)
     endif()
 endfunction()
 
+# Vendored, see third_party/README.md.
+add_library(retrolarium_toml INTERFACE)
+target_include_directories(retrolarium_toml
+    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/toml11)
+target_compile_features(retrolarium_toml INTERFACE cxx_std_17)
+
+# GCC below 9 keeps the filesystem library in its own archive, and ships it as
+# the experimental TS rather than std::filesystem.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
+    target_link_libraries(retrolarium_toml INTERFACE stdc++fs)
+endif()
+
 add_library(retrolarium_core STATIC
     src/enigma.cpp
     src/enigma_encode.cpp
@@ -39,8 +51,11 @@ add_library(retrolarium_core STATIC
     src/nes_tiles.cpp
     src/nemesis_encode.cpp
     src/sha256.cpp
+    src/studio_project.cpp
 )
 add_library(retrolarium::core ALIAS retrolarium_core)
+# PRIVATE: the TOML parser is an implementation detail of one source file.
+target_link_libraries(retrolarium_core PRIVATE retrolarium_toml)
 
 target_include_directories(retrolarium_core
     PUBLIC
@@ -57,6 +72,23 @@ if(RETROLARIUM_CORE_BUILD_CLI)
 endif()
 
 if(RETROLARIUM_CORE_BUILD_TESTS AND BUILD_TESTING)
+    add_executable(retrolarium-core-toml-smoke-tests tests/toml_smoke_test.cpp)
+    target_link_libraries(retrolarium-core-toml-smoke-tests PRIVATE retrolarium_toml)
+    retrolarium_core_enable_warnings(retrolarium-core-toml-smoke-tests)
+    add_test(NAME core.toml_smoke COMMAND retrolarium-core-toml-smoke-tests)
+
+    add_executable(retrolarium-core-studio-project-golden-tests
+        tests/studio_project_golden_test.cpp)
+    target_link_libraries(retrolarium-core-studio-project-golden-tests
+        PRIVATE retrolarium_core)
+    retrolarium_core_enable_warnings(
+        retrolarium-core-studio-project-golden-tests)
+    add_test(NAME core.studio_project_parity
+        COMMAND retrolarium-core-studio-project-golden-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/studio_project_golden.txt
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/studio_projects
+    )
+
     add_executable(retrolarium-core-sha256-tests tests/sha256_test.cpp)
     target_link_libraries(retrolarium-core-sha256-tests PRIVATE retrolarium_core)
     retrolarium_core_enable_warnings(retrolarium-core-sha256-tests)
