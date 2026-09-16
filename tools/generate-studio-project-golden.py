@@ -5,11 +5,11 @@ The fixtures live in retrolarium_core/tests/fixtures/studio_projects and all
 share one project root, so the corpus can record every path relative to it and
 stay machine independent.
 
-The disassembly manifest is stubbed, exactly as the Kit's own tests stub it.
-Validating a manifest means rebuilding and hashing a ROM, which is not what
-this corpus pins: it pins the project-file contract, which is all the C++
-loader implements so far. The manifest cross-checks stay in the Kit until
-contracts.py is ported.
+Only the *validation* of the disassembly manifest is stubbed, the way the
+Kit's own tests stub it: checking one properly means rebuilding and hashing a
+ROM, which belongs with contracts.py. The manifest itself is read from the
+fixture, so both sides perform the same two cross-checks - the schema against
+the platform, and the recorded SHA-256 against the project's.
 
 Usage:
     python retrolarium_core/tools/generate-studio-project-golden.py <out.txt> [--check]
@@ -18,6 +18,7 @@ Usage:
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 import sys
 import tomllib
@@ -36,11 +37,21 @@ SCHEMA_VERSION = 1
 ROOT_TOKEN = "<root>"
 
 
-def stub_manifest(path: Path, platform: str, sha256: str) -> dict[str, object]:
-    return {
-        "schema": f"retrolarium.{platform}.disassembly",
-        "input": {"sha256": sha256},
-    }
+def read_manifest(project: Path, source: Mapping[str, object]) -> dict[str, object]:
+    """Return the manifest as written, skipping only its deep validation.
+
+    Reading it here rather than synthesising it keeps the fixture the single
+    source of truth, so a corpus refusal about the manifest is one the C++
+    loader can reproduce from the same bytes.
+    """
+    disassembly = source.get("disassembly")
+    if not isinstance(disassembly, str):
+        return {}
+    path = project.parent / disassembly
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
 
 
 def load(project: Path) -> dict[str, object]:
@@ -52,11 +63,9 @@ def load(project: Path) -> dict[str, object]:
         # A fixture that is not valid TOML fails in the loader, long before the
         # manifest matters, so any stub will do.
         source = {}
-    platform = str(source.get("project", {}).get("platform", "nes"))
-    sha256 = str(source.get("source", {}).get("sha256", ""))
     with mock.patch(
         "retrolarium_kit.studio_project.load_disassembly_manifest",
-        return_value=stub_manifest(project, platform, sha256),
+        return_value=read_manifest(project, source.get("source", {})),
     ):
         return load_studio_project(project)
 
