@@ -39,6 +39,13 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_L
     target_link_libraries(retrolarium_toml INTERFACE stdc++fs)
 endif()
 
+add_library(retrolarium_json INTERFACE)
+# Included as <nlohmann/json.hpp>: the bare name is too generic to put on
+# an include path.
+target_include_directories(retrolarium_json
+    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+target_compile_features(retrolarium_json INTERFACE cxx_std_17)
+
 add_library(retrolarium_core STATIC
     src/enigma.cpp
     src/enigma_encode.cpp
@@ -55,7 +62,7 @@ add_library(retrolarium_core STATIC
 )
 add_library(retrolarium::core ALIAS retrolarium_core)
 # PRIVATE: the TOML parser is an implementation detail of one source file.
-target_link_libraries(retrolarium_core PRIVATE retrolarium_toml)
+target_link_libraries(retrolarium_core PRIVATE retrolarium_toml retrolarium_json)
 
 target_include_directories(retrolarium_core
     PUBLIC

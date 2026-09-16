@@ -157,10 +157,6 @@ int main(int argc, char *argv[])
             try {
                 retrolarium::core::StudioInspection inspection =
                     retrolarium::core::loadStudioProject(path);
-                // The disassembly manifest is still the Kit's to validate, so
-                // the generator stubs it and the loader leaves the field empty.
-                inspection.sourceSchema =
-                    "retrolarium." + inspection.platform + ".disassembly";
                 inspection.projectFile = foldRoot(inspection.projectFile, root);
                 inspection.projectRoot = foldRoot(inspection.projectRoot, root);
                 inspection.disassemblyPath =

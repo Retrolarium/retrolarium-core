@@ -4,6 +4,8 @@
 // nowhere else. See third_party/README.md.
 #include <toml.hpp>
 
+#include <nlohmann/json.hpp>
+
 // GCC 7, which the cross-build image ships, only has the filesystem TS. It is
 // missing weakly_canonical and lexically_relative, so both are open-coded
 // below rather than switched on per toolchain.
@@ -17,6 +19,7 @@ namespace stdfs = std::experimental::filesystem;
 
 #include <algorithm>
 #include <cctype>
+#include <fstream>
 #include <functional>
 #include <set>
 #include <sstream>
@@ -291,175 +294,18 @@ std::pair<std::string, fs::path> projectPath(
     return {source, canonical};
 }
 
-// --- the fixed projection, rendered the way `rltool studio inspect` prints it
+// nlohmann's default object type is std::map, so dump(2, ' ', true) emits
+// sorted keys, a two-space indent and non-ASCII escaped - byte for byte what
+// json.dumps(value, indent=2, sort_keys=True) produces on the Kit's side.
+using Json = nlohmann::json;
 
-struct JsonNode {
-    enum class Kind { Null, Bool, Int, String, Array, Object } kind = Kind::Null;
-    bool boolean = false;
-    long long integer = 0;
-    std::string text;
-    std::vector<JsonNode> items;
-    // std::map keeps the keys sorted, which is what sort_keys=True produces.
-    std::map<std::string, JsonNode> members;
-
-    static JsonNode string(std::string value)
-    {
-        JsonNode node;
-        node.kind = Kind::String;
-        node.text = std::move(value);
-        return node;
-    }
-    static JsonNode number(long long value)
-    {
-        JsonNode node;
-        node.kind = Kind::Int;
-        node.integer = value;
-        return node;
-    }
-    static JsonNode flag(bool value)
-    {
-        JsonNode node;
-        node.kind = Kind::Bool;
-        node.boolean = value;
-        return node;
-    }
-    static JsonNode null() { return JsonNode(); }
-    static JsonNode array(std::vector<JsonNode> value)
-    {
-        JsonNode node;
-        node.kind = Kind::Array;
-        node.items = std::move(value);
-        return node;
-    }
-    static JsonNode object(std::map<std::string, JsonNode> value)
-    {
-        JsonNode node;
-        node.kind = Kind::Object;
-        node.members = std::move(value);
-        return node;
-    }
-};
-
-JsonNode stringArray(const std::vector<std::string> &values)
+Json stringArray(const std::vector<std::string> &values)
 {
-    std::vector<JsonNode> items;
-    items.reserve(values.size());
+    Json array = Json::array();
     for (const std::string &value : values) {
-        items.push_back(JsonNode::string(value));
+        array.push_back(value);
     }
-    return JsonNode::array(std::move(items));
-}
-
-void appendEscaped(std::string &out, const std::string &value)
-{
-    const auto appendUnicode = [&out](unsigned int code) {
-        static constexpr char kDigits[] = "0123456789abcdef";
-        out += "\\u";
-        out += kDigits[(code >> 12) & 0xF];
-        out += kDigits[(code >> 8) & 0xF];
-        out += kDigits[(code >> 4) & 0xF];
-        out += kDigits[code & 0xF];
-    };
-
-    out += '"';
-    for (std::size_t index = 0; index < value.size();) {
-        const unsigned char byte = static_cast<unsigned char>(value[index]);
-        if (byte == '"') { out += "\\\""; ++index; continue; }
-        if (byte == '\\') { out += "\\\\"; ++index; continue; }
-        if (byte == '\n') { out += "\\n"; ++index; continue; }
-        if (byte == '\r') { out += "\\r"; ++index; continue; }
-        if (byte == '\t') { out += "\\t"; ++index; continue; }
-        if (byte == '\b') { out += "\\b"; ++index; continue; }
-        if (byte == '\f') { out += "\\f"; ++index; continue; }
-        if (byte < 0x20) { appendUnicode(byte); ++index; continue; }
-        if (byte < 0x80) { out += static_cast<char>(byte); ++index; continue; }
-
-        // json.dumps defaults to ensure_ascii, so anything above ASCII leaves
-        // as one or two \u escapes.
-        unsigned int code = 0;
-        std::size_t length = 0;
-        if ((byte & 0xE0) == 0xC0) { code = byte & 0x1Fu; length = 2; }
-        else if ((byte & 0xF0) == 0xE0) { code = byte & 0x0Fu; length = 3; }
-        else if ((byte & 0xF8) == 0xF0) { code = byte & 0x07u; length = 4; }
-        else {
-            throw StudioProjectError("project text is not valid UTF-8");
-        }
-        if (index + length > value.size()) {
-            throw StudioProjectError("project text is not valid UTF-8");
-        }
-        for (std::size_t offset = 1; offset < length; ++offset) {
-            const unsigned char continuation =
-                static_cast<unsigned char>(value[index + offset]);
-            if ((continuation & 0xC0) != 0x80) {
-                throw StudioProjectError("project text is not valid UTF-8");
-            }
-            code = (code << 6) | (continuation & 0x3Fu);
-        }
-        index += length;
-        if (code > 0xFFFF) {
-            const unsigned int adjusted = code - 0x10000u;
-            appendUnicode(0xD800u + (adjusted >> 10));
-            appendUnicode(0xDC00u + (adjusted & 0x3FFu));
-        } else {
-            appendUnicode(code);
-        }
-    }
-    out += '"';
-}
-
-void render(const JsonNode &node, std::string &out, int depth)
-{
-    const std::string indent(static_cast<std::size_t>(depth + 1) * 2, ' ');
-    const std::string closing(static_cast<std::size_t>(depth) * 2, ' ');
-    switch (node.kind) {
-    case JsonNode::Kind::Null:
-        out += "null";
-        return;
-    case JsonNode::Kind::Bool:
-        out += node.boolean ? "true" : "false";
-        return;
-    case JsonNode::Kind::Int:
-        out += std::to_string(node.integer);
-        return;
-    case JsonNode::Kind::String:
-        appendEscaped(out, node.text);
-        return;
-    case JsonNode::Kind::Array: {
-        if (node.items.empty()) {
-            out += "[]";
-            return;
-        }
-        out += "[\n";
-        for (std::size_t index = 0; index < node.items.size(); ++index) {
-            out += indent;
-            render(node.items[index], out, depth + 1);
-            if (index + 1 < node.items.size()) out += ',';
-            out += '\n';
-        }
-        out += closing;
-        out += ']';
-        return;
-    }
-    case JsonNode::Kind::Object: {
-        if (node.members.empty()) {
-            out += "{}";
-            return;
-        }
-        out += "{\n";
-        std::size_t index = 0;
-        for (const auto &entry : node.members) {
-            out += indent;
-            appendEscaped(out, entry.first);
-            out += ": ";
-            render(entry.second, out, depth + 1);
-            if (++index < node.members.size()) out += ',';
-            out += '\n';
-        }
-        out += closing;
-        out += '}';
-        return;
-    }
-    }
+    return array;
 }
 
 void validateDependencyGraph(const std::vector<StudioTab> &tabs)
@@ -576,6 +422,47 @@ StudioInspection loadStudioProject(const std::string &path)
         fail("source.sha256", "must be 64 lowercase hexadecimal characters");
     }
 
+    // Two cross-checks, the same two the Kit makes here. Validating the
+    // manifest itself means rebuilding and hashing a ROM, which belongs with
+    // `rltool project build` and `verify` and is not repeated in this path on
+    // either side.
+    Json manifest;
+    try {
+        std::ifstream manifestStream(disassembly.second.string());
+        if (!manifestStream) {
+            fail("source.disassembly", "cannot read the disassembly manifest");
+        }
+        manifestStream >> manifest;
+    } catch (const Json::exception &jsonError) {
+        fail("source.disassembly",
+            std::string("cannot read the disassembly manifest: ")
+                + jsonError.what());
+    }
+    if (!manifest.is_object()) {
+        fail("manifest", "must be a table");
+    }
+    const auto schemaEntry = manifest.find("schema");
+    if (schemaEntry == manifest.end() || !schemaEntry->is_string()
+        || schemaEntry->get<std::string>().empty()) {
+        fail("source manifest schema", "must be a non-empty string");
+    }
+    result.sourceSchema = schemaEntry->get<std::string>();
+    const std::string expectedSchema =
+        "retrolarium." + result.platform + ".disassembly";
+    if (result.sourceSchema != expectedSchema) {
+        fail("source.disassembly", "platform requires '" + expectedSchema
+            + "', got '" + result.sourceSchema + "'");
+    }
+    const auto inputEntry = manifest.find("input");
+    if (inputEntry == manifest.end() || !inputEntry->is_object()) {
+        fail("source manifest input", "must be a table");
+    }
+    const auto recordedSha = inputEntry->find("sha256");
+    if (recordedSha == inputEntry->end() || !recordedSha->is_string()
+        || recordedSha->get<std::string>() != result.sourceSha256) {
+        fail("source.sha256", "does not match the disassembly manifest input");
+    }
+
     const toml::value &workspace = requireTable(source, "workspace", "workspace");
     checkKeys(workspace, "workspace", {"layout", "startup_tab", "tabs"},
         {"layout", "tabs"});
@@ -681,59 +568,60 @@ StudioInspection loadStudioProject(const std::string &path)
 
 std::string renderStudioInspection(const StudioInspection &value)
 {
-    std::vector<JsonNode> tabs;
-    tabs.reserve(value.tabs.size());
+    Json tabs = Json::array();
     for (const StudioTab &tab : value.tabs) {
-        tabs.push_back(JsonNode::object({
-            {"id", JsonNode::string(tab.id)},
-            {"title", JsonNode::string(tab.title)},
-            {"kind", JsonNode::string(tab.kind)},
-            {"group", JsonNode::string(tab.group)},
-            {"codec", JsonNode::string(tab.codec)},
-            {"capabilities", stringArray(tab.capabilities)},
-            {"depends_on", stringArray(tab.dependsOn)},
-            {"enabled", JsonNode::flag(tab.enabled)},
-            {"document", tab.document.empty()
-                    ? JsonNode::null() : JsonNode::string(tab.document)},
-            {"document_path", tab.documentPath.empty()
-                    ? JsonNode::null() : JsonNode::string(tab.documentPath)},
-        }));
+        Json record = Json::object();
+        record["id"] = tab.id;
+        record["title"] = tab.title;
+        record["kind"] = tab.kind;
+        record["group"] = tab.group;
+        record["codec"] = tab.codec;
+        record["capabilities"] = stringArray(tab.capabilities);
+        record["depends_on"] = stringArray(tab.dependsOn);
+        record["enabled"] = tab.enabled;
+        // A code.analysis tab is the one kind allowed to have no document, and
+        // the Kit reports that as null rather than by dropping the key.
+        if (tab.document.empty()) {
+            record["document"] = nullptr;
+            record["document_path"] = nullptr;
+        } else {
+            record["document"] = tab.document;
+            record["document_path"] = tab.documentPath;
+        }
+        tabs.push_back(std::move(record));
     }
 
-    std::map<std::string, JsonNode> operations;
+    Json operations = Json::object();
     for (const auto &entry : value.operations) {
-        operations[entry.first] = JsonNode::string(entry.second);
+        operations[entry.first] = entry.second;
     }
 
-    const JsonNode root = JsonNode::object({
-        {"schema", JsonNode::string(kInspectionSchema)},
-        {"schema_version", JsonNode::number(1)},
-        {"project_file", JsonNode::string(value.projectFile)},
-        {"project_root", JsonNode::string(value.projectRoot)},
-        {"project", JsonNode::object({
-            {"id", JsonNode::string(value.id)},
-            {"name", JsonNode::string(value.name)},
-            {"platform", JsonNode::string(value.platform)},
-            {"profile", JsonNode::string(value.profile)},
-            {"source_mode", JsonNode::string(value.sourceMode)},
-        })},
-        {"source", JsonNode::object({
-            {"disassembly", JsonNode::string(value.disassembly)},
-            {"disassembly_path", JsonNode::string(value.disassemblyPath)},
-            {"sha256", JsonNode::string(value.sourceSha256)},
-            {"schema", JsonNode::string(value.sourceSchema)},
-        })},
-        {"workspace", JsonNode::object({
-            {"layout", JsonNode::string(value.layout)},
-            {"startup_tab", JsonNode::string(value.startupTab)},
-            {"tabs", JsonNode::array(std::move(tabs))},
-        })},
-        {"operations", JsonNode::object(std::move(operations))},
-    });
+    Json root = Json::object();
+    root["schema"] = kInspectionSchema;
+    root["schema_version"] = 1;
+    root["project_file"] = value.projectFile;
+    root["project_root"] = value.projectRoot;
+    root["project"] = Json {
+        {"id", value.id},
+        {"name", value.name},
+        {"platform", value.platform},
+        {"profile", value.profile},
+        {"source_mode", value.sourceMode},
+    };
+    root["source"] = Json {
+        {"disassembly", value.disassembly},
+        {"disassembly_path", value.disassemblyPath},
+        {"sha256", value.sourceSha256},
+        {"schema", value.sourceSchema},
+    };
+    root["workspace"] = Json {
+        {"layout", value.layout},
+        {"startup_tab", value.startupTab},
+        {"tabs", std::move(tabs)},
+    };
+    root["operations"] = std::move(operations);
 
-    std::string out;
-    render(root, out, 0);
-    return out;
+    return root.dump(2, ' ', true);
 }
 
 } // namespace retrolarium::core

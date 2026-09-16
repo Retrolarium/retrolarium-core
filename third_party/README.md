@@ -23,3 +23,21 @@ toml++ v3 needs GCC 8 or newer. Its file-reading path also calls a wide-string
 toml11's diagnostics differ from Python's `tomllib`, so a malformed project
 file produces a different message on each side. Parity covers the projection
 the two loaders agree on, not the wording of syntax errors.
+
+## nlohmann/json
+
+- File: `nlohmann/json.hpp`
+- Version: v3.11.3 (the single-header release)
+- Source: https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp
+- SHA-256: `9bea4c8066ef4a1c206b2be5a36302f8926f7fdc6087af5d20b417d0cf103ea6`
+- Licence: MIT
+
+Game profiles and disassembly manifests are JSON, and the core has to read them
+without Qt. Its default object type is `std::map`, so `dump(2, ' ', true)`
+produces the same bytes as Python's `json.dumps(value, indent=2,
+sort_keys=True)`: sorted keys, two-space indent, non-ASCII escaped. That is
+what lets a projection be compared to the Kit's byte for byte.
+
+Floating-point formatting is the one place the two are not known to agree.
+Neither profiles nor manifests carry floats, and the corpus does not claim
+parity for them.

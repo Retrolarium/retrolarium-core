@@ -1,1 +1,6 @@
-{"schema": "retrolarium.nes.disassembly"}
+{
+  "input": {
+    "sha256": "2e3b9b749cf26d221642000d503245debc97955357d42a57f9e463b76dfe3896"
+  },
+  "schema": "retrolarium.nes.disassembly"
+}
