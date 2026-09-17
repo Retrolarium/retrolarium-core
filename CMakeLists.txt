@@ -49,6 +49,7 @@ target_compile_features(retrolarium_json INTERFACE cxx_std_17)
 add_library(retrolarium_core STATIC
     src/build_plan.cpp
     src/enigma.cpp
+    src/midi.cpp
     src/fds.cpp
     src/enigma_encode.cpp
     src/ines.cpp
@@ -195,6 +196,16 @@ if(RETROLARIUM_CORE_BUILD_TESTS AND BUILD_TESTING)
     add_test(NAME core.nes_ppu_packets_parity
         COMMAND retrolarium-core-nes-ppu-packets-golden-tests
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nes_ppu_packets_golden.txt
+    )
+
+    add_executable(retrolarium-core-midi-golden-tests
+        tests/midi_golden_test.cpp)
+    target_link_libraries(retrolarium-core-midi-golden-tests
+        PRIVATE retrolarium_core)
+    retrolarium_core_enable_warnings(retrolarium-core-midi-golden-tests)
+    add_test(NAME core.midi_parity
+        COMMAND retrolarium-core-midi-golden-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/midi_golden.txt
     )
 
     add_executable(retrolarium-core-nes-text-golden-tests
