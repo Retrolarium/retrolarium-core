@@ -451,9 +451,12 @@ def validate_megadrive_disassembly_manifest(
         "asset_bytes",
         "raw_bytes",
     )
+    padding_bytes = coverage.get("padding_bytes", 0)
     if coverage.get("rom_bytes") != input_size or any(
         not isinstance(coverage.get(name), int) or coverage[name] < 0 for name in categories
-    ) or sum(coverage[name] for name in categories) != input_size:
+    ) or not isinstance(padding_bytes, int) or padding_bytes < 0 or (
+        sum(coverage[name] for name in categories) + padding_bytes != input_size
+    ):
         raise ContractError("source coverage does not partition the complete ROM")
 
     operations = _mapping(manifest.get("operations"), "operations")
