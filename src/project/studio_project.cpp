@@ -46,23 +46,36 @@ const std::set<std::string> kPlatforms {"nes", "snes", "megadrive"};
 
 const std::set<std::string> kEditorKinds {
     "animation.mapping", "audio.sequencer", "audio.synthesis", "castle.rooms",
+    "castle.room-cells",
+    "castle.metasprites",
+    "castle.mml-music",
+    "solomon.rooms", "solomon.mirrors", "solomon.special",
+    "solomon.room-art", "solomon.sprite-frames", "solomon.audio",
+    "solomon.screens", "solomon.presentation",
+    "data.fixed-byte-records",
     "code.analysis", "graphics.tile-set", "level.procedural", "level.tile-grid",
     "metatile.composer", "palette.set", "screen.tilemap", "text.fixed",
     "world.routing",
 };
 
 const std::set<std::string> kCodecs {
-    "castle.object-stream@1", "castle.prefix-rooms@1", "fds.synthesis.v1",
+    "castle.object-stream@1", "castle.prefix-rooms@1",
+    "castle.room-cell-visuals.v1", "fds.synthesis.v1",
+    "castle.metasprite-descriptors.v1",
+    "castle.sub-command-text.v1", "castle.sfx-parameters.v1",
     "fds.music.v1", "nes.chr-2bpp.v1", "nes.fixed-text-fields.v1",
     "nes.metatile-2x2.v1", "nes.nametable.v1", "nes.palette-table.v1",
     "nes.ppu-palette-packets.v1", "nes.ppu-screen-packets.v1",
     "pacman.maze-rle.v1", "pacman.maze-rle@1", "pacman.actor-mapping.v1",
     "pacman.palette-table.v1", "pacman.screen-collection.v1",
-    "pacman.sound-streams.v1", "pacman.sound@1",
+    "pacman.sound-streams.v1", "pacman.sound@1", "castle.mml-music.v1",
     "retrolarium.megadrive.disassembly@1", "retrolarium.nes.disassembly@1",
     "retrolarium.snes.disassembly@1", "smb.apu@1", "smb.apu-envelope.v1",
     "smb.apu-music.v1", "smb.area@1", "smb.world.v1", "smb.levels.v1",
     "smb.player-frames.v1",
+    "solomon.rooms@3", "solomon.mirrors@3", "solomon.special@3",
+    "solomon.room-art@1", "solomon.sprite-frames@1", "solomon.audio@1",
+    "solomon.screens@1", "solomon.presentation@1",
 };
 
 const std::set<std::string> kCapabilities {
