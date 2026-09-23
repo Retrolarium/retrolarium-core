@@ -168,6 +168,15 @@ def cartridge_checksum(data: bytes) -> int:
     return total
 
 
+def stamp_cartridge_checksum(data: bytes) -> bytes:
+    """Return a ROM with the Sega header checksum matching its payload."""
+    if len(data) < 0x200 or data[0x100:0x104] != b"SEGA":
+        raise MegaDriveError("cannot stamp a non-Mega Drive cartridge image")
+    stamped = bytearray(data)
+    stamped[0x18E:0x190] = cartridge_checksum(data).to_bytes(2, "big")
+    return bytes(stamped)
+
+
 def _parse_header(data: bytes) -> CartridgeHeader:
     return CartridgeHeader(
         system=_text(data, 0x100, 0x110),

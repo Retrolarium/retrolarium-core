@@ -39,7 +39,8 @@ constexpr const char *kProjectSuffix = ".rlj";
     throw StudioProjectError(context + ": " + message);
 }
 
-const std::set<std::string> kSourceModes {"binary-profile", "source-project"};
+const std::set<std::string> kSourceModes {
+    "binary-profile", "source-project", "flicky-content"};
 const std::set<std::string> kLayouts {"auto", "single-row", "two-row"};
 const std::set<std::string> kGroups {"content", "assets", "tools"};
 const std::set<std::string> kPlatforms {"nes", "snes", "megadrive"};
@@ -53,6 +54,9 @@ const std::set<std::string> kEditorKinds {
     "solomon.room-art", "solomon.sprite-frames", "solomon.audio",
     "solomon.screens", "solomon.presentation",
     "data.fixed-byte-records",
+    "doraemon.levels",
+    "flicky.levels", "flicky.graphics", "flicky.semantics",
+    "flicky.animations", "flicky.sound",
     "code.analysis", "graphics.tile-set", "level.procedural", "level.tile-grid",
     "metatile.composer", "palette.set", "screen.tilemap", "text.fixed",
     "world.routing",
@@ -60,8 +64,11 @@ const std::set<std::string> kEditorKinds {
 
 const std::set<std::string> kCodecs {
     "castle.object-stream@1", "castle.prefix-rooms@1",
+    "doraemon.hierarchy.v1",
     "castle.room-cell-visuals.v1", "fds.synthesis.v1",
     "castle.metasprite-descriptors.v1",
+    "flicky.levels.v1", "flicky.graphics.v1", "flicky.semantics.v1",
+    "flicky.animations.v1", "flicky.sound.v1",
     "castle.sub-command-text.v1", "castle.sfx-parameters.v1",
     "fds.music.v1", "nes.chr-2bpp.v1", "nes.fixed-text-fields.v1",
     "nes.metatile-2x2.v1", "nes.nametable.v1", "nes.palette-table.v1",
@@ -423,10 +430,12 @@ StudioInspection loadStudioProject(const std::string &path)
         member(metadata, "source_mode"), "project.source_mode", kSourceModes);
 
     const toml::value &sourceTable = requireTable(source, "source", "source");
-    checkKeys(sourceTable, "source", {"disassembly", "sha256"},
-        {"disassembly", "sha256"});
+    const bool flickyContent = result.sourceMode == "flicky-content";
+    const std::string sourceKey = flickyContent ? "manifest" : "disassembly";
+    checkKeys(sourceTable, "source", {sourceKey, "sha256"},
+        {sourceKey, "sha256"});
     const auto disassembly = projectPath(
-        root, member(sourceTable, "disassembly"), "source.disassembly");
+        root, member(sourceTable, sourceKey), "source." + sourceKey);
     result.disassembly = disassembly.first;
     result.disassemblyPath = disassembly.second.string();
     result.sourceSha256 = requireString(
@@ -435,45 +444,64 @@ StudioInspection loadStudioProject(const std::string &path)
         fail("source.sha256", "must be 64 lowercase hexadecimal characters");
     }
 
-    // Two cross-checks, the same two the Kit makes here. Validating the
-    // manifest itself means rebuilding and hashing a ROM, which belongs with
-    // `rltool project build` and `verify` and is not repeated in this path on
-    // either side.
+    // Cross-check the selected source manifest without launching a build.
     Json manifest;
     try {
         std::ifstream manifestStream(disassembly.second.string());
         if (!manifestStream) {
-            fail("source.disassembly", "cannot read the disassembly manifest");
+            fail("source." + sourceKey, "cannot read the source manifest");
         }
         manifestStream >> manifest;
     } catch (const Json::exception &jsonError) {
-        fail("source.disassembly",
-            std::string("cannot read the disassembly manifest: ")
+        fail("source." + sourceKey,
+            std::string("cannot read the source manifest: ")
                 + jsonError.what());
     }
     if (!manifest.is_object()) {
         fail("manifest", "must be a table");
     }
-    const auto schemaEntry = manifest.find("schema");
-    if (schemaEntry == manifest.end() || !schemaEntry->is_string()
-        || schemaEntry->get<std::string>().empty()) {
-        fail("source manifest schema", "must be a non-empty string");
-    }
-    result.sourceSchema = schemaEntry->get<std::string>();
-    const std::string expectedSchema =
-        "retrolarium." + result.platform + ".disassembly";
-    if (result.sourceSchema != expectedSchema) {
-        fail("source.disassembly", "platform requires '" + expectedSchema
-            + "', got '" + result.sourceSchema + "'");
-    }
-    const auto inputEntry = manifest.find("input");
-    if (inputEntry == manifest.end() || !inputEntry->is_object()) {
-        fail("source manifest input", "must be a table");
-    }
-    const auto recordedSha = inputEntry->find("sha256");
-    if (recordedSha == inputEntry->end() || !recordedSha->is_string()
-        || recordedSha->get<std::string>() != result.sourceSha256) {
-        fail("source.sha256", "does not match the disassembly manifest input");
+    if (flickyContent) {
+        if (result.platform != "megadrive" || result.profile != "flicky-ue.v1") {
+            fail("project", "Flicky content requires megadrive/flicky-ue.v1");
+        }
+        if (result.disassembly
+                != "flicky-source/config/authoring/content_studios.json") {
+            fail("source.manifest", "must name the imported Flicky content manifest");
+        }
+        if (result.sourceSha256
+                != "4df1a91e08376ae773a6eb8e5abe310f94ca39d8f81583b91a9477fedcb68c11") {
+            fail("source.sha256", "does not match canonical Flicky (UE)");
+        }
+        if (manifest.value("schema_version", Json()) != 1
+            || manifest.value("profile", Json()) != "canonical"
+            || manifest.value("image_size", Json()) != 131072
+            || manifest.value("image_sha1", Json())
+                != "83d8bbf0a9b38c42a0bf492d105cc3abe9644a96") {
+            fail("source.manifest", "is not the canonical Flicky content manifest");
+        }
+        result.sourceSchema = "flicky.content-studios";
+    } else {
+        const auto schemaEntry = manifest.find("schema");
+        if (schemaEntry == manifest.end() || !schemaEntry->is_string()
+            || schemaEntry->get<std::string>().empty()) {
+            fail("source manifest schema", "must be a non-empty string");
+        }
+        result.sourceSchema = schemaEntry->get<std::string>();
+        const std::string expectedSchema =
+            "retrolarium." + result.platform + ".disassembly";
+        if (result.sourceSchema != expectedSchema) {
+            fail("source.disassembly", "platform requires '" + expectedSchema
+                + "', got '" + result.sourceSchema + "'");
+        }
+        const auto inputEntry = manifest.find("input");
+        if (inputEntry == manifest.end() || !inputEntry->is_object()) {
+            fail("source manifest input", "must be a table");
+        }
+        const auto recordedSha = inputEntry->find("sha256");
+        if (recordedSha == inputEntry->end() || !recordedSha->is_string()
+            || recordedSha->get<std::string>() != result.sourceSha256) {
+            fail("source.sha256", "does not match the disassembly manifest input");
+        }
     }
 
     const toml::value &workspace = requireTable(source, "workspace", "workspace");
@@ -542,6 +570,30 @@ StudioInspection loadStudioProject(const std::string &path)
     }
 
     validateDependencyGraph(result.tabs);
+    if (flickyContent) {
+        const std::map<std::string, std::string> expectedTabs {
+            {"flicky.levels", "content/workspace/level/levels.json"},
+            {"flicky.graphics", "content/workspace/graphics/graphics.json"},
+            {"flicky.semantics", "content/workspace/graphics/semantics.json"},
+            {"flicky.animations", "content/workspace/graphics/sequences.json"},
+            {"flicky.sound", "content/workspace/sound/z80_sound_data.asm"},
+        };
+        if (result.tabs.size() != expectedTabs.size()) {
+            fail("workspace.tabs", "Flicky requires its five content documents");
+        }
+        std::set<std::string> seenKinds;
+        for (const StudioTab &tab : result.tabs) {
+            const auto expected = expectedTabs.find(tab.kind);
+            if (expected == expectedTabs.end() || !seenKinds.insert(tab.kind).second) {
+                fail("workspace.tabs", "Flicky requires its five content documents");
+            }
+            if (tab.document != "flicky-source/" + expected->second
+                || tab.codec != tab.kind + ".v1" || !tab.enabled) {
+                fail("workspace.tabs",
+                    "Flicky tab must use its enabled source workspace document and codec");
+            }
+        }
+    }
 
     std::vector<std::string> enabledIds;
     for (const StudioTab &tab : result.tabs) {
@@ -621,9 +673,11 @@ std::string renderStudioInspection(const StudioInspection &value)
         {"profile", value.profile},
         {"source_mode", value.sourceMode},
     };
+    const std::string sourceKey = value.sourceMode == "flicky-content"
+        ? "manifest" : "disassembly";
     root["source"] = Json {
-        {"disassembly", value.disassembly},
-        {"disassembly_path", value.disassemblyPath},
+        {sourceKey, value.disassembly},
+        {sourceKey + "_path", value.disassemblyPath},
         {"sha256", value.sourceSha256},
         {"schema", value.sourceSchema},
     };

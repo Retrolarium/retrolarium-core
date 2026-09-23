@@ -40,11 +40,12 @@ struct StudioInspection final {
     std::string profile;
     std::string sourceMode;
 
+    // In flicky-content mode these carry source.manifest / manifest_path;
+    // other source modes carry source.disassembly / disassembly_path.
     std::string disassembly;
     std::string disassemblyPath;
     std::string sourceSha256;
-    // Read from the disassembly manifest, so it is the one field this loader
-    // cannot derive from the project file alone.
+    // Read from the selected manifest (synthetic for Flicky's content format).
     std::string sourceSchema;
 
     std::string layout;
@@ -56,9 +57,7 @@ struct StudioInspection final {
     std::map<std::string, std::string> operations;
 };
 
-// Reads and validates a .rlj file. `sourceSchema` is left empty: the schema
-// lives in the disassembly manifest, which is JSON and validated by the Kit's
-// contracts module. readStudioProjectSchema() fills it in once that is ported.
+// Reads and validates a .rlj file and its selected source manifest.
 [[nodiscard]] StudioInspection loadStudioProject(const std::string &path);
 
 // The projection the GUI consumes, rendered exactly as
