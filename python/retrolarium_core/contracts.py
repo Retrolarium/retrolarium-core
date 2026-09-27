@@ -325,6 +325,7 @@ def validate_megadrive_disassembly_manifest(
     analysis_root = analysis_path.parent
     cpu_ids: set[str] = set()
     derived_edges: set[str] = set()
+    edge_owners: dict[str, str] = {}
     spaces: set[str] = set()
     for index, value in enumerate(programs):
         program = _mapping(value, f"analysis.programs[{index}]")
@@ -355,10 +356,21 @@ def validate_megadrive_disassembly_manifest(
             if program.get("analysis_input_sha256") != input_sha256:
                 raise ContractError("m68k analysis input differs from cartridge image")
         else:
-            edge = program.get("derived_from")
-            if not isinstance(edge, str) or not edge:
+            derivation = program.get("derived_from")
+            edges_for_program = (
+                [derivation] if isinstance(derivation, str) else derivation
+            )
+            if (
+                not isinstance(edges_for_program, list)
+                or not edges_for_program
+                or any(not isinstance(edge, str) or not edge for edge in edges_for_program)
+                or len(edges_for_program) != len(set(edges_for_program))
+            ):
                 raise ContractError(f"Z80 analysis program {cpu_id} has no derivation")
-            derived_edges.add(edge)
+            if derived_edges.intersection(edges_for_program):
+                raise ContractError("Z80 copy edge belongs to multiple programs")
+            derived_edges.update(edges_for_program)
+            edge_owners.update((edge, cpu_id) for edge in edges_for_program)
     if "m68k" not in spaces:
         raise ContractError("Mega Drive analysis has no m68k program")
 
@@ -422,6 +434,8 @@ def validate_megadrive_disassembly_manifest(
         ):
             raise ContractError(f"invalid cross-CPU edge at index {index}")
         edge_ids.add(edge_id)
+        if target.get("cpu_id") != edge_owners.get(edge_id):
+            raise ContractError(f"cross-CPU edge {edge_id} names the wrong Z80 program")
         payload = _validate_hashed_file(
             analysis_root,
             {"path": edge.get("payload"), "sha256": edge.get("payload_sha256")},
@@ -458,6 +472,13 @@ def validate_megadrive_disassembly_manifest(
         sum(coverage[name] for name in categories) + padding_bytes != input_size
     ):
         raise ContractError("source coverage does not partition the complete ROM")
+    symbolic_bytes = coverage.get("symbolic_instruction_bytes", 0)
+    if (
+        not isinstance(symbolic_bytes, int)
+        or symbolic_bytes < 0
+        or symbolic_bytes > coverage["instruction_bytes"]
+    ):
+        raise ContractError("symbolic instruction bytes exceed analyzed instruction bytes")
 
     operations = _mapping(manifest.get("operations"), "operations")
     build = _mapping(operations.get("build"), "operations.build")
@@ -469,7 +490,11 @@ def validate_megadrive_disassembly_manifest(
     ):
         raise ContractError("unsupported Mega Drive build operation")
     argv = build.get("argv")
-    if not isinstance(argv, list) or not argv or any(not isinstance(value, str) or not value for value in argv):
+    if build.get("runner") == "docker" and (
+        not isinstance(argv, list)
+        or not argv
+        or any(not isinstance(value, str) or not value for value in argv)
+    ):
         raise ContractError("build argv must be a non-empty string array")
     project_directory = artifact_path(root, build.get("project_directory"))
     if not project_directory.is_dir():

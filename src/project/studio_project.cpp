@@ -578,20 +578,36 @@ StudioInspection loadStudioProject(const std::string &path)
             {"flicky.animations", "content/workspace/graphics/sequences.json"},
             {"flicky.sound", "content/workspace/sound/z80_sound_data.asm"},
         };
-        if (result.tabs.size() != expectedTabs.size()) {
-            fail("workspace.tabs", "Flicky requires its five content documents");
+        if (result.tabs.size() != expectedTabs.size()
+            && result.tabs.size() != expectedTabs.size() + 1) {
+            fail("workspace.tabs", "Flicky requires five content documents and optional Text view");
         }
-        std::set<std::string> seenKinds;
+        std::map<std::string, int> kindCounts;
+        bool textView = false;
         for (const StudioTab &tab : result.tabs) {
             const auto expected = expectedTabs.find(tab.kind);
-            if (expected == expectedTabs.end() || !seenKinds.insert(tab.kind).second) {
+            if (expected == expectedTabs.end()) {
                 fail("workspace.tabs", "Flicky requires its five content documents");
+            }
+            if (tab.id == "text") {
+                if (tab.kind != "flicky.semantics" || textView) {
+                    fail("workspace.tabs", "Flicky Text view must use the semantics document");
+                }
+                textView = true;
+            }
+            if (++kindCounts[tab.kind] > (tab.kind == "flicky.semantics"
+                    && result.tabs.size() == expectedTabs.size() + 1 ? 2 : 1)) {
+                fail("workspace.tabs", "Flicky permits only one extra Text view");
             }
             if (tab.document != "flicky-source/" + expected->second
                 || tab.codec != tab.kind + ".v1" || !tab.enabled) {
                 fail("workspace.tabs",
                     "Flicky tab must use its enabled source workspace document and codec");
             }
+        }
+        if (kindCounts.size() != expectedTabs.size()
+            || (result.tabs.size() == expectedTabs.size() + 1 && !textView)) {
+            fail("workspace.tabs", "Flicky requires its five content documents");
         }
     }
 
