@@ -248,6 +248,8 @@ def _validate_megadrive_assets(
         raise ContractError("assets.items must be a non-empty list")
     identifiers: set[str] = set()
     occupied: list[tuple[int, int]] = []
+    emitted_files = []
+    shared_sources = []
     for index, value in enumerate(items):
         item = _mapping(value, f"assets.items[{index}]")
         identifier = item.get("id")
@@ -269,10 +271,43 @@ def _validate_megadrive_assets(
             raise ContractError(f"asset {identifier} has invalid ROM coordinates")
         if path.stat().st_size != size:
             raise ContractError(f"asset {identifier} size differs from its file")
-        occupied.append((offset, offset + size))
+        emission = item.get("rom_emission")
+        if emission is None:
+            occupied.append((offset, offset + size))
+            emitted_files.append((offset, offset + size, path, 0))
+        else:
+            if item.get("kind") != "z80_program" or not isinstance(emission, list):
+                raise ContractError(f"asset {identifier} has invalid ROM emission spans")
+            shared_sources.append((offset, size, path))
+            for span in emission:
+                span = _mapping(span, f"asset {identifier} emission span")
+                at, source, length = (span.get(key) for key in
+                                      ("rom_file_offset", "file_offset", "size"))
+                if (not all(isinstance(value, int) and not isinstance(value, bool)
+                            for value in (at, source, length))
+                        or source < 0 or length <= 0 or source + length > size
+                        or at != offset + source):
+                    raise ContractError(f"asset {identifier} has invalid ROM emission coordinates")
+                occupied.append((at, at + length))
+                emitted_files.append((at, at + length, path, source))
     occupied.sort()
     if any(left[1] > right[0] for left, right in zip(occupied, occupied[1:])):
         raise ContractError("Mega Drive asset ROM ranges overlap")
+    # Omitted shared bytes must have another owner with identical bytes. An
+    # empty emission list cannot silently discard a complete Z80 program.
+    for offset, size, path in shared_sources:
+        payload = path.read_bytes()
+        covered = bytearray(size)
+        for start, end, owner, source in emitted_files:
+            left, right = max(offset, start), min(offset + size, end)
+            if left >= right:
+                continue
+            owner_bytes = owner.read_bytes()[source + left - start:source + right - start]
+            if payload[left - offset:right - offset] != owner_bytes:
+                raise ContractError("shared Z80 source bytes disagree with ROM emission owner")
+            covered[left - offset:right - offset] = b"\x01" * (right - left)
+        if not all(covered):
+            raise ContractError("shared Z80 source bytes have no ROM emission owner")
 
 
 def validate_megadrive_disassembly_manifest(
