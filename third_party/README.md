@@ -41,3 +41,7 @@ what lets a projection be compared to the Kit's byte for byte.
 Floating-point formatting is the one place the two are not known to agree.
 Neither profiles nor manifests carry floats, and the corpus does not claim
 parity for them.
+
+Each library's license sits beside it (`toml11/LICENSE`,
+`nlohmann/LICENSE.MIT`, both MIT): the studio package ships them, since
+the studio links the core statically.
