@@ -43,6 +43,15 @@
         {
           "id": "swim-stomp-envelope",
           "parameters": {"file_offset": 29634}
+        },
+        {
+          "id": "sfx-tables",
+          "parameters": {"records": [
+            {"id": "extra_life", "file_offset": 29925, "size": 6, "kind": "note"},
+            {"id": "power_up_grab", "file_offset": 29931, "size": 27, "kind": "note"},
+            {"id": "power_up_reveal_and_vine", "file_offset": 29961, "size": 32, "kind": "note"},
+            {"id": "brick_shatter_noise", "file_offset": 30268, "size": 16, "kind": "noise"}
+          ]}
         }
       ]
     },
@@ -81,6 +90,11 @@
       ],
       "resource_overrides": [
         {
+          "id": "demo",
+          "payload": "prg",
+          "parameters": {"actions_cpu": 33598, "durations_cpu": 33619, "engine_cpu": 33641, "capacity": 21}
+        },
+        {
           "id": "world",
           "payload": "prg",
           "parameters": {
@@ -92,8 +106,9 @@
           "id": "levels",
           "payload": "chr",
           "parameters": {
+            "stream_pool": null,
             "area_file_offset": 9571,
-            "area_size": 4439,
+            "area_size": 4441,
             "enemy_file_offset": 8203,
             "enemy_size": 1368,
             "stream_names": [
@@ -113,7 +128,7 @@
               99, 101, 89, 151, 157, 101, 89, 133,
               107, 9, 63, 21, 99, 101, 109, 49,
               145, 131, 117, 121, 43, 133, 85, 133,
-              173, 173, 141, 65, 221, 29, 123
+              173, 173, 141, 65, 221, 29, 125
             ],
             "enemy_capacities": [
               61, 27, 35, 53, 21, 58, 29, 47,
@@ -156,7 +171,8 @@
               {"key": "world-lives", "label": "World and lives", "file_offset": 2421, "size": 31},
               {"key": "time-up", "label": "Time up", "file_offset": 2452, "size": 19},
               {"key": "game-over", "label": "Game over", "file_offset": 2471, "size": 21}
-            ]
+            ],
+            "packet_pool": null
           }
         },
         {
@@ -235,6 +251,16 @@
           "parameters": {"file_offset": 29369}
         },
         {
+          "id": "sfx-tables",
+          "payload": "prg",
+          "parameters": {"records": [
+            {"id": "extra_life", "file_offset": 29660, "size": 6, "kind": "note"},
+            {"id": "power_up_grab", "file_offset": 29666, "size": 27, "kind": "note"},
+            {"id": "power_up_reveal_and_vine", "file_offset": 29696, "size": 32, "kind": "note"},
+            {"id": "brick_shatter_noise", "file_offset": 30003, "size": 16, "kind": "noise"}
+          ]}
+        },
+        {
           "id": "character-graphics",
           "payload": "chr",
           "parameters": {"file_offset": 0}
@@ -267,6 +293,11 @@
       ],
       "resource_overrides": [
         {
+          "id": "demo",
+          "payload": "prg",
+          "parameters": {"actions_cpu": 25414, "durations_cpu": 25435, "engine_cpu": 25457, "capacity": 21}
+        },
+        {
           "id": "world",
           "payload": "prg",
           "parameters": {
@@ -278,6 +309,7 @@
           "id": "levels",
           "payload": "prg",
           "parameters": {
+            "stream_pool": null,
             "area_file_offset": 8631,
             "enemy_file_offset": 7544
           }
@@ -306,7 +338,8 @@
               {"key": "world-lives", "label": "World and lives", "file_offset": 1919, "size": 31},
               {"key": "time-up", "label": "Time up", "file_offset": 1950, "size": 19},
               {"key": "game-over", "label": "Game over", "file_offset": 1969, "size": 21}
-            ]
+            ],
+            "packet_pool": null
           }
         },
         {
@@ -346,6 +379,16 @@
           "id": "swim-stomp-envelope",
           "payload": "prg",
           "parameters": {"file_offset": 29617}
+        },
+        {
+          "id": "sfx-tables",
+          "payload": "prg",
+          "parameters": {"records": [
+            {"id": "extra_life", "file_offset": 29908, "size": 6, "kind": "note"},
+            {"id": "power_up_grab", "file_offset": 29914, "size": 27, "kind": "note"},
+            {"id": "power_up_reveal_and_vine", "file_offset": 29944, "size": 32, "kind": "note"},
+            {"id": "brick_shatter_noise", "file_offset": 30251, "size": 16, "kind": "noise"}
+          ]}
         },
         {
           "id": "character-graphics",
@@ -405,11 +448,19 @@
       ],
       "resources": [
         {
+          "id": "demo",
+          "kind": "demo",
+          "codec": "smb.demo-input.v1",
+          "capacity_policy": "fixed",
+          "payload": "prg",
+          "parameters": {"actions_cpu": 50410, "durations_cpu": 50429, "engine_cpu": 50449, "capacity": 19}
+        },
+        {
           "id": "authoring-bundle",
           "kind": "resource-bundle",
           "codec": "nes.resource-bundle.v1",
           "capacity_policy": "fixed",
-          "parameters": {}
+          "parameters": {"resource_ids": ["world-normal", "levels-normal", "world-extended", "levels-extended", "background-metatiles", "area-palette-packets", "player-palettes", "player-frames", "game-screen-packets", "warp-zone-screen", "title-screen", "music", "swim-stomp-envelope", "sfx-tables", "fds-music", "character-graphics"]}
         },
         {
           "id": "world-normal",
@@ -828,6 +879,19 @@
           }
         },
         {
+          "id": "sfx-tables",
+          "kind": "audio",
+          "codec": "smb.sfx-tables.v1",
+          "capacity_policy": "fixed",
+          "payload": "prg",
+          "parameters": {"records": [
+            {"id": "extra_life", "file_offset": 29929, "size": 6, "kind": "note"},
+            {"id": "power_up_grab", "file_offset": 29935, "size": 27, "kind": "note"},
+            {"id": "power_up_reveal_and_vine", "file_offset": 29965, "size": 32, "kind": "note"},
+            {"id": "brick_shatter_noise", "file_offset": 30272, "size": 16, "kind": "noise"}
+          ]}
+        },
+        {
           "id": "fds-music",
           "kind": "audio",
           "codec": "fds.music.v1",
@@ -926,11 +990,19 @@
       ],
       "resources": [
         {
+          "id": "demo",
+          "kind": "demo",
+          "codec": "smb.demo-input.v1",
+          "capacity_policy": "fixed",
+          "payload": "prg",
+          "parameters": {"actions_cpu": 50480, "durations_cpu": 50497, "engine_cpu": 50515, "capacity": 17}
+        },
+        {
           "id": "authoring-bundle",
           "kind": "resource-bundle",
           "codec": "nes.resource-bundle.v1",
           "capacity_policy": "fixed",
-          "parameters": {}
+          "parameters": {"resource_ids": ["world-normal", "levels-normal", "world-hard", "levels-hard", "background-metatiles", "area-palette-packets", "player-palettes", "player-frames", "game-screen-packets", "warp-zone-screen", "title-screen", "music", "swim-stomp-envelope", "sfx-tables", "fds-music", "character-graphics"]}
         },
         {
           "id": "world-normal",
@@ -1356,6 +1428,19 @@
           }
         },
         {
+          "id": "sfx-tables",
+          "kind": "audio",
+          "codec": "smb.sfx-tables.v1",
+          "capacity_policy": "fixed",
+          "payload": "prg",
+          "parameters": {"records": [
+            {"id": "extra_life", "file_offset": 29860, "size": 6, "kind": "note"},
+            {"id": "power_up_grab", "file_offset": 29866, "size": 27, "kind": "note"},
+            {"id": "power_up_reveal_and_vine", "file_offset": 29896, "size": 32, "kind": "note"},
+            {"id": "brick_shatter_noise", "file_offset": 30227, "size": 16, "kind": "noise"}
+          ]}
+        },
+        {
           "id": "fds-music",
           "kind": "audio",
           "codec": "fds.music.v1",
@@ -1410,7 +1495,14 @@
       "kind": "resource-bundle",
       "codec": "nes.resource-bundle.v1",
       "capacity_policy": "fixed",
-      "parameters": {}
+      "parameters": {"resource_ids": ["world", "levels", "background-metatiles", "area-palette-packets", "player-palettes", "game-screen-packets", "warp-zone-screen", "ui-text", "player-frames", "music", "swim-stomp-envelope", "sfx-tables", "character-graphics"]}
+    },
+    {
+      "id": "demo",
+      "kind": "demo",
+      "codec": "smb.demo-input.v1",
+      "capacity_policy": "fixed",
+      "parameters": {"actions_cpu": 33600, "durations_cpu": 33621, "engine_cpu": 33643, "capacity": 21}
     },
     {
       "id": "world",
@@ -1466,7 +1558,22 @@
           39, 25, 47, 43, 21, 58, 37, 29, 14, 39, 49, 30, 29, 21,
           42, 1, 36, 9, 37, 35, 9, 1, 58, 43, 46, 28, 9, 37,
           45, 46, 45, 17, 42, 20
-        ]
+        ],
+        "stream_pool": {
+          "cpu_bias": 32752,
+          "area_pointer_low": 7484,
+          "area_pointer_high": 7518,
+          "enemy_pointer_low": 7412,
+          "enemy_pointer_high": 7446,
+          "area_pointer_streams": [
+            31, 32, 33, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+            20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 0, 1, 2, 3, 4, 5
+          ],
+          "enemy_pointer_streams": [
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+            17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33
+          ]
+        }
       }
     },
     {
@@ -1550,7 +1657,22 @@
           {"key": "world-lives", "label": "World and lives", "file_offset": 1929, "size": 31},
           {"key": "time-up", "label": "Time up", "file_offset": 1960, "size": 19},
           {"key": "game-over", "label": "Game over", "file_offset": 1979, "size": 21}
-        ]
+        ],
+        "packet_pool": {
+          "offset_table": 2062,
+          "offset_base": 1890,
+          "entries": [
+            {"screen": "status", "command": 0},
+            {"screen": "status", "command": 0},
+            {"screen": "world-lives", "command": 0},
+            {"screen": "world-lives", "command": 0},
+            {"screen": "time-up", "command": 0},
+            {"screen": "time-up", "command": 1},
+            {"screen": "game-over", "command": 0},
+            {"screen": "game-over", "command": 1}
+          ],
+          "growable_fields": ["status-headings", "time-up", "game-over"]
+        }
       }
     },
     {
@@ -1682,6 +1804,18 @@
         "file_offset": 29633,
         "size": 14
       }
+    },
+    {
+      "id": "sfx-tables",
+      "kind": "audio",
+      "codec": "smb.sfx-tables.v1",
+      "capacity_policy": "fixed",
+      "parameters": {"records": [
+        {"id": "extra_life", "file_offset": 29924, "size": 6, "kind": "note"},
+        {"id": "power_up_grab", "file_offset": 29930, "size": 27, "kind": "note"},
+        {"id": "power_up_reveal_and_vine", "file_offset": 29960, "size": 32, "kind": "note"},
+        {"id": "brick_shatter_noise", "file_offset": 30267, "size": 16, "kind": "noise"}
+      ]}
     },
     {
       "id": "character-graphics",

@@ -527,6 +527,46 @@
         "track_table_file_offset": 14550
       },
       "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "castle.title-demo.v1",
+      "id": "title-demo",
+      "kind": "demo",
+      "parameters": {
+        "capacity": 72,
+        "init_cpu": 47101,
+        "reader_cpu": 47114,
+        "script_cpu": 47148
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "castle.screens.v1",
+      "id": "screens",
+      "kind": "screens",
+      "parameters": {
+        "chr_banks": [
+          0,
+          1,
+          1
+        ],
+        "chr_file_offset": 57360,
+        "game_over_cpu": 65156,
+        "game_over_length": 9,
+        "page_names": [
+          "completion",
+          "title",
+          "castle-map"
+        ],
+        "pages": [
+          20,
+          24,
+          28
+        ]
+      },
+      "payload": null
     }
   ],
   "revisions": [

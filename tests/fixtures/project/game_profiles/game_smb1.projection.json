@@ -17,7 +17,36 @@
       "codec": "nes.resource-bundle.v1",
       "id": "authoring-bundle",
       "kind": "resource-bundle",
-      "parameters": {},
+      "parameters": {
+        "resource_ids": [
+          "world",
+          "levels",
+          "background-metatiles",
+          "area-palette-packets",
+          "player-palettes",
+          "game-screen-packets",
+          "warp-zone-screen",
+          "ui-text",
+          "player-frames",
+          "music",
+          "swim-stomp-envelope",
+          "sfx-tables",
+          "character-graphics"
+        ]
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "smb.demo-input.v1",
+      "id": "demo",
+      "kind": "demo",
+      "parameters": {
+        "actions_cpu": 33600,
+        "capacity": 21,
+        "durations_cpu": 33621,
+        "engine_cpu": 33643
+      },
       "payload": null
     },
     {
@@ -209,6 +238,85 @@
           "water_2",
           "water_3"
         ],
+        "stream_pool": {
+          "area_pointer_high": 7518,
+          "area_pointer_low": 7484,
+          "area_pointer_streams": [
+            31,
+            32,
+            33,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "cpu_bias": 32752,
+          "enemy_pointer_high": 7446,
+          "enemy_pointer_low": 7412,
+          "enemy_pointer_streams": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33
+          ]
+        },
         "world_resource": "world"
       },
       "payload": null
@@ -343,6 +451,49 @@
         "fill_attribute": 0,
         "fill_tile": 36,
         "height": 30,
+        "packet_pool": {
+          "entries": [
+            {
+              "command": 0,
+              "screen": "status"
+            },
+            {
+              "command": 0,
+              "screen": "status"
+            },
+            {
+              "command": 0,
+              "screen": "world-lives"
+            },
+            {
+              "command": 0,
+              "screen": "world-lives"
+            },
+            {
+              "command": 0,
+              "screen": "time-up"
+            },
+            {
+              "command": 1,
+              "screen": "time-up"
+            },
+            {
+              "command": 0,
+              "screen": "game-over"
+            },
+            {
+              "command": 1,
+              "screen": "game-over"
+            }
+          ],
+          "growable_fields": [
+            "status-headings",
+            "time-up",
+            "game-over"
+          ],
+          "offset_base": 1890,
+          "offset_table": 2062
+        },
         "screens": [
           {
             "file_offset": 1890,
@@ -721,6 +872,41 @@
     },
     {
       "capacity_policy": "fixed",
+      "codec": "smb.sfx-tables.v1",
+      "id": "sfx-tables",
+      "kind": "audio",
+      "parameters": {
+        "records": [
+          {
+            "file_offset": 29924,
+            "id": "extra_life",
+            "kind": "note",
+            "size": 6
+          },
+          {
+            "file_offset": 29930,
+            "id": "power_up_grab",
+            "kind": "note",
+            "size": 27
+          },
+          {
+            "file_offset": 29960,
+            "id": "power_up_reveal_and_vine",
+            "kind": "note",
+            "size": 32
+          },
+          {
+            "file_offset": 30267,
+            "id": "brick_shatter_noise",
+            "kind": "noise",
+            "size": 16
+          }
+        ]
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
       "codec": "nes.chr-2bpp.v1",
       "id": "character-graphics",
       "kind": "graphics",
@@ -916,6 +1102,41 @@
             "size": 14
           },
           "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "smb.sfx-tables.v1",
+          "id": "sfx-tables",
+          "kind": "audio",
+          "parameters": {
+            "records": [
+              {
+                "file_offset": 29925,
+                "id": "extra_life",
+                "kind": "note",
+                "size": 6
+              },
+              {
+                "file_offset": 29931,
+                "id": "power_up_grab",
+                "kind": "note",
+                "size": 27
+              },
+              {
+                "file_offset": 29961,
+                "id": "power_up_reveal_and_vine",
+                "kind": "note",
+                "size": 32
+              },
+              {
+                "file_offset": 30268,
+                "id": "brick_shatter_noise",
+                "kind": "noise",
+                "size": 16
+              }
+            ]
+          },
+          "payload": null
         }
       ],
       "name": "Super Mario Bros. (Europe, Rev A)",
@@ -946,6 +1167,38 @@
             "file_offset": 29634
           },
           "payload": null
+        },
+        {
+          "id": "sfx-tables",
+          "parameters": {
+            "records": [
+              {
+                "file_offset": 29925,
+                "id": "extra_life",
+                "kind": "note",
+                "size": 6
+              },
+              {
+                "file_offset": 29931,
+                "id": "power_up_grab",
+                "kind": "note",
+                "size": 27
+              },
+              {
+                "file_offset": 29961,
+                "id": "power_up_reveal_and_vine",
+                "kind": "note",
+                "size": 32
+              },
+              {
+                "file_offset": 30268,
+                "id": "brick_shatter_noise",
+                "kind": "noise",
+                "size": 16
+              }
+            ]
+          },
+          "payload": null
         }
       ],
       "resources": null,
@@ -973,6 +1226,19 @@
       "id": "vs_smb",
       "mapper": null,
       "merged_resources": [
+        {
+          "capacity_policy": "fixed",
+          "codec": "smb.demo-input.v1",
+          "id": "demo",
+          "kind": "demo",
+          "parameters": {
+            "actions_cpu": 33598,
+            "capacity": 21,
+            "durations_cpu": 33619,
+            "engine_cpu": 33641
+          },
+          "payload": "prg"
+        },
         {
           "capacity_policy": "fixed",
           "codec": "smb.world.v1",
@@ -1088,10 +1354,10 @@
               65,
               221,
               29,
-              123
+              125
             ],
             "area_file_offset": 9571,
-            "area_size": 4439,
+            "area_size": 4441,
             "enemy_capacities": [
               61,
               27,
@@ -1177,6 +1443,7 @@
               "water_3",
               "water_4"
             ],
+            "stream_pool": null,
             "world_resource": "world"
           },
           "payload": "chr"
@@ -1311,6 +1578,7 @@
             "fill_attribute": 0,
             "fill_tile": 36,
             "height": 30,
+            "packet_pool": null,
             "screens": [
               {
                 "file_offset": 2382,
@@ -1711,6 +1979,41 @@
         },
         {
           "capacity_policy": "fixed",
+          "codec": "smb.sfx-tables.v1",
+          "id": "sfx-tables",
+          "kind": "audio",
+          "parameters": {
+            "records": [
+              {
+                "file_offset": 29660,
+                "id": "extra_life",
+                "kind": "note",
+                "size": 6
+              },
+              {
+                "file_offset": 29666,
+                "id": "power_up_grab",
+                "kind": "note",
+                "size": 27
+              },
+              {
+                "file_offset": 29696,
+                "id": "power_up_reveal_and_vine",
+                "kind": "note",
+                "size": 32
+              },
+              {
+                "file_offset": 30003,
+                "id": "brick_shatter_noise",
+                "kind": "noise",
+                "size": 16
+              }
+            ]
+          },
+          "payload": "prg"
+        },
+        {
+          "capacity_policy": "fixed",
           "codec": "nes.chr-2bpp.v1",
           "id": "character-graphics",
           "kind": "graphics",
@@ -1743,6 +2046,16 @@
         }
       ],
       "resource_overrides": [
+        {
+          "id": "demo",
+          "parameters": {
+            "actions_cpu": 33598,
+            "capacity": 21,
+            "durations_cpu": 33619,
+            "engine_cpu": 33641
+          },
+          "payload": "prg"
+        },
         {
           "id": "world",
           "parameters": {
@@ -1793,10 +2106,10 @@
               65,
               221,
               29,
-              123
+              125
             ],
             "area_file_offset": 9571,
-            "area_size": 4439,
+            "area_size": 4441,
             "enemy_capacities": [
               61,
               27,
@@ -1880,7 +2193,8 @@
               "water_2",
               "water_3",
               "water_4"
-            ]
+            ],
+            "stream_pool": null
           },
           "payload": "chr"
         },
@@ -1912,6 +2226,7 @@
         {
           "id": "game-screen-packets",
           "parameters": {
+            "packet_pool": null,
             "screens": [
               {
                 "file_offset": 2382,
@@ -2123,6 +2438,38 @@
           "payload": "prg"
         },
         {
+          "id": "sfx-tables",
+          "parameters": {
+            "records": [
+              {
+                "file_offset": 29660,
+                "id": "extra_life",
+                "kind": "note",
+                "size": 6
+              },
+              {
+                "file_offset": 29666,
+                "id": "power_up_grab",
+                "kind": "note",
+                "size": 27
+              },
+              {
+                "file_offset": 29696,
+                "id": "power_up_reveal_and_vine",
+                "kind": "note",
+                "size": 32
+              },
+              {
+                "file_offset": 30003,
+                "id": "brick_shatter_noise",
+                "kind": "noise",
+                "size": 16
+              }
+            ]
+          },
+          "payload": "prg"
+        },
+        {
           "id": "character-graphics",
           "parameters": {
             "file_offset": 0
@@ -2141,6 +2488,19 @@
       "id": "fds_smb",
       "mapper": null,
       "merged_resources": [
+        {
+          "capacity_policy": "fixed",
+          "codec": "smb.demo-input.v1",
+          "id": "demo",
+          "kind": "demo",
+          "parameters": {
+            "actions_cpu": 25414,
+            "capacity": 21,
+            "durations_cpu": 25435,
+            "engine_cpu": 25457
+          },
+          "payload": "prg"
+        },
         {
           "capacity_policy": "fixed",
           "codec": "smb.world.v1",
@@ -2330,6 +2690,7 @@
               "water_2",
               "water_3"
             ],
+            "stream_pool": null,
             "world_resource": "world"
           },
           "payload": "prg"
@@ -2464,6 +2825,7 @@
             "fill_attribute": 0,
             "fill_tile": 36,
             "height": 30,
+            "packet_pool": null,
             "screens": [
               {
                 "file_offset": 1880,
@@ -2842,6 +3204,41 @@
         },
         {
           "capacity_policy": "fixed",
+          "codec": "smb.sfx-tables.v1",
+          "id": "sfx-tables",
+          "kind": "audio",
+          "parameters": {
+            "records": [
+              {
+                "file_offset": 29908,
+                "id": "extra_life",
+                "kind": "note",
+                "size": 6
+              },
+              {
+                "file_offset": 29914,
+                "id": "power_up_grab",
+                "kind": "note",
+                "size": 27
+              },
+              {
+                "file_offset": 29944,
+                "id": "power_up_reveal_and_vine",
+                "kind": "note",
+                "size": 32
+              },
+              {
+                "file_offset": 30251,
+                "id": "brick_shatter_noise",
+                "kind": "noise",
+                "size": 16
+              }
+            ]
+          },
+          "payload": "prg"
+        },
+        {
+          "capacity_policy": "fixed",
           "codec": "nes.chr-2bpp.v1",
           "id": "character-graphics",
           "kind": "graphics",
@@ -2880,6 +3277,16 @@
       ],
       "resource_overrides": [
         {
+          "id": "demo",
+          "parameters": {
+            "actions_cpu": 25414,
+            "capacity": 21,
+            "durations_cpu": 25435,
+            "engine_cpu": 25457
+          },
+          "payload": "prg"
+        },
+        {
           "id": "world",
           "parameters": {
             "physics_file_offset": 13356,
@@ -2891,7 +3298,8 @@
           "id": "levels",
           "parameters": {
             "area_file_offset": 8631,
-            "enemy_file_offset": 7544
+            "enemy_file_offset": 7544,
+            "stream_pool": null
           },
           "payload": "prg"
         },
@@ -2919,6 +3327,7 @@
         {
           "id": "game-screen-packets",
           "parameters": {
+            "packet_pool": null,
             "screens": [
               {
                 "file_offset": 1880,
@@ -2997,6 +3406,38 @@
           "id": "swim-stomp-envelope",
           "parameters": {
             "file_offset": 29617
+          },
+          "payload": "prg"
+        },
+        {
+          "id": "sfx-tables",
+          "parameters": {
+            "records": [
+              {
+                "file_offset": 29908,
+                "id": "extra_life",
+                "kind": "note",
+                "size": 6
+              },
+              {
+                "file_offset": 29914,
+                "id": "power_up_grab",
+                "kind": "note",
+                "size": 27
+              },
+              {
+                "file_offset": 29944,
+                "id": "power_up_reveal_and_vine",
+                "kind": "note",
+                "size": 32
+              },
+              {
+                "file_offset": 30251,
+                "id": "brick_shatter_noise",
+                "kind": "noise",
+                "size": 16
+              }
+            ]
           },
           "payload": "prg"
         },
@@ -3088,10 +3529,42 @@
       "resources": [
         {
           "capacity_policy": "fixed",
+          "codec": "smb.demo-input.v1",
+          "id": "demo",
+          "kind": "demo",
+          "parameters": {
+            "actions_cpu": 50410,
+            "capacity": 19,
+            "durations_cpu": 50429,
+            "engine_cpu": 50449
+          },
+          "payload": "prg"
+        },
+        {
+          "capacity_policy": "fixed",
           "codec": "nes.resource-bundle.v1",
           "id": "authoring-bundle",
           "kind": "resource-bundle",
-          "parameters": {},
+          "parameters": {
+            "resource_ids": [
+              "world-normal",
+              "levels-normal",
+              "world-extended",
+              "levels-extended",
+              "background-metatiles",
+              "area-palette-packets",
+              "player-palettes",
+              "player-frames",
+              "game-screen-packets",
+              "warp-zone-screen",
+              "title-screen",
+              "music",
+              "swim-stomp-envelope",
+              "sfx-tables",
+              "fds-music",
+              "character-graphics"
+            ]
+          },
           "payload": null
         },
         {
@@ -4689,6 +5162,41 @@
         },
         {
           "capacity_policy": "fixed",
+          "codec": "smb.sfx-tables.v1",
+          "id": "sfx-tables",
+          "kind": "audio",
+          "parameters": {
+            "records": [
+              {
+                "file_offset": 29929,
+                "id": "extra_life",
+                "kind": "note",
+                "size": 6
+              },
+              {
+                "file_offset": 29935,
+                "id": "power_up_grab",
+                "kind": "note",
+                "size": 27
+              },
+              {
+                "file_offset": 29965,
+                "id": "power_up_reveal_and_vine",
+                "kind": "note",
+                "size": 32
+              },
+              {
+                "file_offset": 30272,
+                "id": "brick_shatter_noise",
+                "kind": "noise",
+                "size": 16
+              }
+            ]
+          },
+          "payload": "prg"
+        },
+        {
+          "capacity_policy": "fixed",
           "codec": "fds.music.v1",
           "id": "fds-music",
           "kind": "audio",
@@ -4840,10 +5348,42 @@
       "resources": [
         {
           "capacity_policy": "fixed",
+          "codec": "smb.demo-input.v1",
+          "id": "demo",
+          "kind": "demo",
+          "parameters": {
+            "actions_cpu": 50480,
+            "capacity": 17,
+            "durations_cpu": 50497,
+            "engine_cpu": 50515
+          },
+          "payload": "prg"
+        },
+        {
+          "capacity_policy": "fixed",
           "codec": "nes.resource-bundle.v1",
           "id": "authoring-bundle",
           "kind": "resource-bundle",
-          "parameters": {},
+          "parameters": {
+            "resource_ids": [
+              "world-normal",
+              "levels-normal",
+              "world-hard",
+              "levels-hard",
+              "background-metatiles",
+              "area-palette-packets",
+              "player-palettes",
+              "player-frames",
+              "game-screen-packets",
+              "warp-zone-screen",
+              "title-screen",
+              "music",
+              "swim-stomp-envelope",
+              "sfx-tables",
+              "fds-music",
+              "character-graphics"
+            ]
+          },
           "payload": null
         },
         {
@@ -6541,6 +7081,41 @@
           "parameters": {
             "file_offset": 29569,
             "size": 14
+          },
+          "payload": "prg"
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "smb.sfx-tables.v1",
+          "id": "sfx-tables",
+          "kind": "audio",
+          "parameters": {
+            "records": [
+              {
+                "file_offset": 29860,
+                "id": "extra_life",
+                "kind": "note",
+                "size": 6
+              },
+              {
+                "file_offset": 29866,
+                "id": "power_up_grab",
+                "kind": "note",
+                "size": 27
+              },
+              {
+                "file_offset": 29896,
+                "id": "power_up_reveal_and_vine",
+                "kind": "note",
+                "size": 32
+              },
+              {
+                "file_offset": 30227,
+                "id": "brick_shatter_noise",
+                "kind": "noise",
+                "size": 16
+              }
+            ]
           },
           "payload": "prg"
         },

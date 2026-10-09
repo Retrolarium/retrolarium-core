@@ -18,7 +18,21 @@
       "codec": "nes.resource-bundle.v1",
       "id": "authoring-bundle",
       "kind": "resource-bundle",
-      "parameters": {},
+      "parameters": {
+        "resource_ids": [
+          "maze",
+          "title-background",
+          "screen-content",
+          "sound-streams",
+          "attract-bg-sprite",
+          "round-gameplay",
+          "frightened-active-normal",
+          "intermission-sprites",
+          "fruit-by-stage",
+          "character-graphics",
+          "actor-frames"
+        ]
+      },
       "payload": null
     },
     {
@@ -29,6 +43,29 @@
       "parameters": {
         "file_offset": 11400,
         "height": 27,
+        "pellet_count_offsets": [
+          3736,
+          3889,
+          4492
+        ],
+        "power_pellets": [
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            20
+          ],
+          [
+            20,
+            2
+          ],
+          [
+            20,
+            20
+          ]
+        ],
         "size": 416,
         "tokens": 416,
         "width": 22
@@ -607,6 +644,18 @@
       "parameters": {
         "file_offset": 7017,
         "size": 624
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "pacman.attract-demo.v1",
+      "id": "attract-demo",
+      "kind": "demo",
+      "parameters": {
+        "pairs": 28,
+        "script_cpu": 54385,
+        "table_cpu": 54410
       },
       "payload": null
     }
