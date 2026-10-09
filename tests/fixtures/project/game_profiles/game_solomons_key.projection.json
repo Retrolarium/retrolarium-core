@@ -1,0 +1,766 @@
+{
+  "capabilities": [
+    "rooms",
+    "objects",
+    "graphics",
+    "audio",
+    "presentation",
+    "playtest",
+    "exact-round-trip"
+  ],
+  "id": "solomons-key",
+  "name": "Solomon's Key",
+  "platform": "nes",
+  "profile_version": 1,
+  "resources": [
+    {
+      "capacity_policy": "fixed",
+      "codec": "solomon.block-bitplanes.v1",
+      "id": "room-blocks",
+      "kind": "room-collection",
+      "parameters": {
+        "bytes_per_plane": 24,
+        "height": 12,
+        "prg_offset": 24620,
+        "room_count": 53,
+        "width": 16
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "solomon.enemy-streams.v1",
+      "id": "enemy-streams",
+      "kind": "object-layer",
+      "parameters": {
+        "arena_end_prg": 24620,
+        "arena_start_prg": 23894,
+        "pointer_table_prg": 23788
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "solomon.item-streams.v1",
+      "id": "item-streams",
+      "kind": "object-layer",
+      "parameters": {
+        "arena_end_prg": 28612,
+        "arena_start_prg": 27270,
+        "pointer_table_prg": 27164
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "solomon.mirror-schedules.v1",
+      "id": "mirror-schedules",
+      "kind": "object-layer",
+      "parameters": {
+        "arena_end_prg": 23746,
+        "arena_start_prg": 23618,
+        "pointer_table_prg": 23552
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "solomon.mirror-enemy-sets.v1",
+      "id": "mirror-enemy-sets",
+      "kind": "object-layer",
+      "parameters": {
+        "arena_end_prg": 23788,
+        "arena_start_prg": 23746,
+        "pointer_table_prg": 23584
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "solomon.special-rooms.v1",
+      "id": "special-rooms",
+      "kind": "special-room-data",
+      "parameters": {
+        "bonus_positions_prg": 6594,
+        "bonus_types_prg": 6626,
+        "princess_positions_prg": 16342,
+        "room20_plane_prg": 16354,
+        "room30_plane_prg": 16378,
+        "seal_positions_prg": 16326
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "nes.resource-bundle.v1",
+      "id": "graphics-bundle",
+      "kind": "resource-bundle",
+      "parameters": {
+        "resource_ids": [
+          "chr-bank-0",
+          "chr-bank-1",
+          "chr-bank-2",
+          "chr-bank-3",
+          "room-palettes",
+          "ending-fade"
+        ]
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "nes.chr-2bpp.v1",
+      "id": "chr-bank-0",
+      "kind": "graphics",
+      "parameters": {
+        "file_offset": 32784,
+        "size": 8192
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "nes.chr-2bpp.v1",
+      "id": "chr-bank-1",
+      "kind": "graphics",
+      "parameters": {
+        "file_offset": 40976,
+        "size": 8192
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "nes.chr-2bpp.v1",
+      "id": "chr-bank-2",
+      "kind": "graphics",
+      "parameters": {
+        "file_offset": 49168,
+        "size": 8192
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "nes.chr-2bpp.v1",
+      "id": "chr-bank-3",
+      "kind": "graphics",
+      "parameters": {
+        "file_offset": 57360,
+        "size": 8192
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "nes.palette-table.v1",
+      "id": "room-palettes",
+      "kind": "palette",
+      "parameters": {
+        "entries": 32,
+        "file_offset": 3795,
+        "palette_model": "nes",
+        "size": 32
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "nes.palette-table.v1",
+      "id": "ending-fade",
+      "kind": "palette",
+      "parameters": {
+        "entries": 3,
+        "file_offset": 15780,
+        "palette_model": "nes",
+        "size": 3
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "solomon.room-art.v1",
+      "id": "room-art",
+      "kind": "room-art",
+      "parameters": {
+        "room_group_colors_prg": 4386,
+        "room_map_patterns_prg": 20480
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "solomon.presentation.v1",
+      "id": "presentation",
+      "kind": "presentation",
+      "parameters": {
+        "demo_code_cpu": 52011,
+        "demo_duration_cpu": 52977,
+        "demo_end_cpu": 53163,
+        "demo_input_cpu": 53011,
+        "logo_cpu": 52730,
+        "record_cpu": 52575
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "solomon.text.v1",
+      "id": "text",
+      "kind": "text",
+      "parameters": {
+        "ending_data_cpu": 48814,
+        "ending_data_end_cpu": 49066,
+        "ending_initial_cpu": 48725,
+        "ending_initial_end_cpu": 48783,
+        "ending_initial_second_operand_cpu": 48328,
+        "ending_offsets_cpu": 48804,
+        "ending_single_address_operand_cpu": 48409,
+        "room_intro_cpu": 37490,
+        "special_names_cpu": 37521,
+        "static_05_reference_cpu": 48538,
+        "static_pointer_high_cpu": 38042,
+        "static_pointer_low_cpu": 38024,
+        "static_region_cpu": 38060,
+        "static_region_end_cpu": 38427
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "solomon.audio.v1",
+      "id": "audio",
+      "kind": "audio",
+      "parameters": {
+        "duration_cpu": 62336,
+        "effect_data_cpu": 62640,
+        "effect_pointer_cpu": 62588,
+        "envelope_data_cpu": 62378,
+        "envelope_pointer_cpu": 62362,
+        "period_cpu": 62312,
+        "stream_cpu": 62866,
+        "stream_end_cpu": 65529
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "solomon.sprite-frames.v1",
+      "id": "sprite-frames",
+      "kind": "sprite-frames",
+      "parameters": {
+        "animation_pointers_prg": 20712,
+        "enemy_configuration_prg": 9294
+      },
+      "payload": null
+    },
+    {
+      "capacity_policy": "fixed",
+      "codec": "solomon.animations.v1",
+      "id": "animations",
+      "kind": "animations",
+      "parameters": {
+        "enemy_configuration_prg": 9294,
+        "pointer_table_prg": 20712
+      },
+      "payload": null
+    }
+  ],
+  "revisions": [
+    {
+      "capabilities": null,
+      "container": "ines",
+      "id": "usa",
+      "mapper": 3,
+      "merged_resources": null,
+      "name": "Solomon's Key (USA)",
+      "payloads": [],
+      "resource_overrides": [],
+      "resources": null,
+      "sha1": "18102689fd35c7d531a5e6241b06b748accab2f6",
+      "sha256": "3d9f3bee199a3fbc04bab38e1d9d5cdeae1c6691dcca463a13c25e42f77bb03d",
+      "size": 65552
+    },
+    {
+      "capabilities": null,
+      "container": "ines",
+      "id": "europe",
+      "mapper": 3,
+      "merged_resources": [
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.block-bitplanes.v1",
+          "id": "room-blocks",
+          "kind": "room-collection",
+          "parameters": {
+            "bytes_per_plane": 24,
+            "height": 12,
+            "prg_offset": 24492,
+            "room_count": 53,
+            "width": 16
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.enemy-streams.v1",
+          "id": "enemy-streams",
+          "kind": "object-layer",
+          "parameters": {
+            "arena_end_prg": 24492,
+            "arena_start_prg": 23766,
+            "pointer_table_prg": 23660
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.item-streams.v1",
+          "id": "item-streams",
+          "kind": "object-layer",
+          "parameters": {
+            "arena_end_prg": 28484,
+            "arena_start_prg": 27142,
+            "pointer_table_prg": 27036
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.mirror-schedules.v1",
+          "id": "mirror-schedules",
+          "kind": "object-layer",
+          "parameters": {
+            "arena_end_prg": 23618,
+            "arena_start_prg": 23490,
+            "pointer_table_prg": 23424
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.mirror-enemy-sets.v1",
+          "id": "mirror-enemy-sets",
+          "kind": "object-layer",
+          "parameters": {
+            "arena_end_prg": 23660,
+            "arena_start_prg": 23618,
+            "pointer_table_prg": 23456
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.special-rooms.v1",
+          "id": "special-rooms",
+          "kind": "special-room-data",
+          "parameters": {
+            "bonus_positions_prg": 6602,
+            "bonus_types_prg": 6634,
+            "princess_positions_prg": 16342,
+            "room20_plane_prg": 16354,
+            "room30_plane_prg": 16378,
+            "seal_positions_prg": 16326
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "nes.palette-table.v1",
+          "id": "room-palettes",
+          "kind": "palette",
+          "parameters": {
+            "entries": 32,
+            "file_offset": 3810,
+            "palette_model": "nes",
+            "size": 32
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.room-art.v1",
+          "id": "room-art",
+          "kind": "room-art",
+          "parameters": {
+            "room_group_colors_prg": 4401,
+            "room_map_patterns_prg": 20352
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.presentation.v1",
+          "id": "presentation",
+          "kind": "presentation",
+          "parameters": {
+            "demo_code_cpu": 51899,
+            "demo_duration_cpu": 52865,
+            "demo_end_cpu": 53035,
+            "demo_input_cpu": 52899,
+            "logo_cpu": 52618,
+            "record_cpu": 52463
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.text.v1",
+          "id": "text",
+          "kind": "text",
+          "parameters": {
+            "ending_data_cpu": 48814,
+            "ending_data_end_cpu": 49066,
+            "ending_initial_cpu": 48725,
+            "ending_initial_end_cpu": 48783,
+            "ending_initial_second_operand_cpu": 48328,
+            "ending_offsets_cpu": 48804,
+            "ending_single_address_operand_cpu": 48409,
+            "room_intro_cpu": 37516,
+            "special_names_cpu": 37547,
+            "static_05_reference_cpu": 48538,
+            "static_pointer_high_cpu": 38068,
+            "static_pointer_low_cpu": 38050,
+            "static_region_cpu": 38086,
+            "static_region_end_cpu": 38435
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.audio.v1",
+          "id": "audio",
+          "kind": "audio",
+          "parameters": {
+            "duration_cpu": 62208,
+            "effect_data_cpu": 62552,
+            "effect_pointer_cpu": 62500,
+            "envelope_data_cpu": 62290,
+            "envelope_pointer_cpu": 62274,
+            "period_cpu": 62184,
+            "stream_cpu": 62778,
+            "stream_end_cpu": 65502
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.sprite-frames.v1",
+          "id": "sprite-frames",
+          "kind": "sprite-frames",
+          "parameters": {
+            "animation_pointers_prg": 20584,
+            "enemy_configuration_prg": 9294
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.animations.v1",
+          "id": "animations",
+          "kind": "animations",
+          "parameters": {
+            "enemy_configuration_prg": 9294,
+            "pointer_table_prg": 20584
+          },
+          "payload": null
+        }
+      ],
+      "name": "Solomon's Key (Europe)",
+      "payloads": [],
+      "resource_overrides": [
+        {
+          "id": "room-blocks",
+          "parameters": {
+            "prg_offset": 24492
+          },
+          "payload": null
+        },
+        {
+          "id": "enemy-streams",
+          "parameters": {
+            "arena_end_prg": 24492,
+            "arena_start_prg": 23766,
+            "pointer_table_prg": 23660
+          },
+          "payload": null
+        },
+        {
+          "id": "item-streams",
+          "parameters": {
+            "arena_end_prg": 28484,
+            "arena_start_prg": 27142,
+            "pointer_table_prg": 27036
+          },
+          "payload": null
+        },
+        {
+          "id": "mirror-schedules",
+          "parameters": {
+            "arena_end_prg": 23618,
+            "arena_start_prg": 23490,
+            "pointer_table_prg": 23424
+          },
+          "payload": null
+        },
+        {
+          "id": "mirror-enemy-sets",
+          "parameters": {
+            "arena_end_prg": 23660,
+            "arena_start_prg": 23618,
+            "pointer_table_prg": 23456
+          },
+          "payload": null
+        },
+        {
+          "id": "special-rooms",
+          "parameters": {
+            "bonus_positions_prg": 6602,
+            "bonus_types_prg": 6634
+          },
+          "payload": null
+        },
+        {
+          "id": "room-palettes",
+          "parameters": {
+            "file_offset": 3810
+          },
+          "payload": null
+        },
+        {
+          "id": "room-art",
+          "parameters": {
+            "room_group_colors_prg": 4401,
+            "room_map_patterns_prg": 20352
+          },
+          "payload": null
+        },
+        {
+          "id": "sprite-frames",
+          "parameters": {
+            "animation_pointers_prg": 20584
+          },
+          "payload": null
+        },
+        {
+          "id": "animations",
+          "parameters": {
+            "enemy_configuration_prg": 9294,
+            "pointer_table_prg": 20584
+          },
+          "payload": null
+        },
+        {
+          "id": "audio",
+          "parameters": {
+            "duration_cpu": 62208,
+            "effect_data_cpu": 62552,
+            "effect_pointer_cpu": 62500,
+            "envelope_data_cpu": 62290,
+            "envelope_pointer_cpu": 62274,
+            "period_cpu": 62184,
+            "stream_cpu": 62778,
+            "stream_end_cpu": 65502
+          },
+          "payload": null
+        },
+        {
+          "id": "presentation",
+          "parameters": {
+            "demo_code_cpu": 51899,
+            "demo_duration_cpu": 52865,
+            "demo_end_cpu": 53035,
+            "demo_input_cpu": 52899,
+            "logo_cpu": 52618,
+            "record_cpu": 52463
+          },
+          "payload": null
+        },
+        {
+          "id": "text",
+          "parameters": {
+            "room_intro_cpu": 37516,
+            "special_names_cpu": 37547,
+            "static_pointer_high_cpu": 38068,
+            "static_pointer_low_cpu": 38050,
+            "static_region_cpu": 38086,
+            "static_region_end_cpu": 38435
+          },
+          "payload": null
+        }
+      ],
+      "resources": null,
+      "sha1": "89ab8f53154c9dcddafe46c16b31df7e00fe2538",
+      "sha256": "e8dc7ad587133869eaf6101018be676e9c14c3b97b988d2e96f7e398b5c33acb",
+      "size": 65552
+    },
+    {
+      "capabilities": null,
+      "container": "ines",
+      "id": "japan",
+      "mapper": 3,
+      "merged_resources": [
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.special-rooms.v1",
+          "id": "special-rooms",
+          "kind": "special-room-data",
+          "parameters": {
+            "bonus_positions_prg": 6469,
+            "bonus_types_prg": 6501,
+            "princess_positions_prg": 15270,
+            "room20_plane_prg": 15282,
+            "room30_plane_prg": 15306,
+            "seal_positions_prg": 15254
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "nes.palette-table.v1",
+          "id": "ending-fade",
+          "kind": "palette",
+          "parameters": {
+            "entries": 3,
+            "file_offset": 14708,
+            "palette_model": "nes",
+            "size": 3
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.presentation.v1",
+          "id": "presentation",
+          "kind": "presentation",
+          "parameters": {
+            "demo_code_cpu": 52180,
+            "demo_duration_cpu": 53146,
+            "demo_end_cpu": 53248,
+            "demo_input_cpu": 53180,
+            "logo_cpu": 52899,
+            "record_cpu": 52744
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.text.v1",
+          "id": "text",
+          "kind": "text",
+          "parameters": {
+            "ending_data_cpu": 47742,
+            "ending_data_end_cpu": 47994,
+            "ending_initial_cpu": 47653,
+            "ending_initial_end_cpu": 47711,
+            "ending_initial_second_operand_cpu": 47256,
+            "ending_offsets_cpu": 47732,
+            "ending_single_address_operand_cpu": 47337,
+            "room_intro_cpu": 37490,
+            "special_names_cpu": 37521,
+            "static_05_reference_cpu": 47466,
+            "static_count": 13,
+            "static_pointer_high_cpu": 38037,
+            "static_pointer_low_cpu": 38024,
+            "static_region_cpu": 38050,
+            "static_region_end_cpu": 38302
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.sprite-frames.v1",
+          "id": "sprite-frames",
+          "kind": "sprite-frames",
+          "parameters": {
+            "animation_pointers_prg": 20712,
+            "enemy_configuration_prg": 8974
+          },
+          "payload": null
+        },
+        {
+          "capacity_policy": "fixed",
+          "codec": "solomon.animations.v1",
+          "id": "animations",
+          "kind": "animations",
+          "parameters": {
+            "enemy_configuration_prg": 8974,
+            "pointer_table_prg": 20712
+          },
+          "payload": null
+        }
+      ],
+      "name": "Solomon no Kagi (Japan)",
+      "payloads": [],
+      "resource_overrides": [
+        {
+          "id": "special-rooms",
+          "parameters": {
+            "bonus_positions_prg": 6469,
+            "bonus_types_prg": 6501,
+            "princess_positions_prg": 15270,
+            "room20_plane_prg": 15282,
+            "room30_plane_prg": 15306,
+            "seal_positions_prg": 15254
+          },
+          "payload": null
+        },
+        {
+          "id": "ending-fade",
+          "parameters": {
+            "file_offset": 14708
+          },
+          "payload": null
+        },
+        {
+          "id": "sprite-frames",
+          "parameters": {
+            "enemy_configuration_prg": 8974
+          },
+          "payload": null
+        },
+        {
+          "id": "animations",
+          "parameters": {
+            "enemy_configuration_prg": 8974
+          },
+          "payload": null
+        },
+        {
+          "id": "presentation",
+          "parameters": {
+            "demo_code_cpu": 52180,
+            "demo_duration_cpu": 53146,
+            "demo_end_cpu": 53248,
+            "demo_input_cpu": 53180,
+            "logo_cpu": 52899,
+            "record_cpu": 52744
+          },
+          "payload": null
+        },
+        {
+          "id": "text",
+          "parameters": {
+            "ending_data_cpu": 47742,
+            "ending_data_end_cpu": 47994,
+            "ending_initial_cpu": 47653,
+            "ending_initial_end_cpu": 47711,
+            "ending_initial_second_operand_cpu": 47256,
+            "ending_offsets_cpu": 47732,
+            "ending_single_address_operand_cpu": 47337,
+            "static_05_reference_cpu": 47466,
+            "static_count": 13,
+            "static_pointer_high_cpu": 38037,
+            "static_region_cpu": 38050,
+            "static_region_end_cpu": 38302
+          },
+          "payload": null
+        }
+      ],
+      "resources": null,
+      "sha1": "71d073d0e9e9be84a02db3f78d962c9d94ceea05",
+      "sha256": "b90bb344eff516863bc5278d9efba7ffd2a83a1e6cf27a6b2a9ab57ec094ae83",
+      "size": 65552
+    }
+  ]
+}

@@ -26,7 +26,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "retrolarium-kit" / "src"))
 
 PROFILE_SOURCE = (
-    REPO_ROOT / "retrolarium-kit" / "src" / "retrolarium_kit" / "profiles"
+    REPO_ROOT / "retrolarium-kit" / "src" / "retrolarium_kit" / "core" / "profiles"
 )
 FIXTURES = REPO_ROOT / "retrolarium-core" / "tests" / "fixtures" / "game_profiles"
 
