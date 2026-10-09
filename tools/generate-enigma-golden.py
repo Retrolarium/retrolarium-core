@@ -11,7 +11,7 @@ is at most 0x1F after its shift, and a seven-bit code is at least 0x40 - so no
 case can exercise them. That is verified here rather than assumed.
 
 Usage:
-    python retrolarium-core/tools/generate-enigma-golden.py <output.txt> [--check]
+    python tools/generate-enigma-golden.py <output.txt> [--check]
 """
 
 from __future__ import annotations

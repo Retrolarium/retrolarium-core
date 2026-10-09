@@ -7,7 +7,7 @@ So this builds a real profile over a synthetic image and drives those, rather
 than restating the rules here. An oracle you paraphrase is not an oracle.
 
 Usage:
-    python retrolarium-core/tools/generate-nes-surfaces-golden.py <output.txt> [--check]
+    python tools/generate-nes-surfaces-golden.py <output.txt> [--check]
 """
 
 from __future__ import annotations

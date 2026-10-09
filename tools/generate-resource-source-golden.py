@@ -10,7 +10,7 @@ The ROM image is described rather than carried, the way the FDS corpus does
 it, and both sides compare its SHA-256 before anything else.
 
 Usage:
-    python retrolarium-core/tools/generate-resource-source-golden.py <out.txt> [--check]
+    python tools/generate-resource-source-golden.py <out.txt> [--check]
 """
 
 from __future__ import annotations

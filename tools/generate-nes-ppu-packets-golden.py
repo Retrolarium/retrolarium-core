@@ -11,7 +11,7 @@ purpose: it is the oracle, and reaching for a public wrapper would drag in
 profile plumbing this corpus does not need.
 
 Usage:
-    python retrolarium-core/tools/generate-nes-ppu-packets-golden.py <output.txt> [--check]
+    python tools/generate-nes-ppu-packets-golden.py <output.txt> [--check]
 """
 
 from __future__ import annotations

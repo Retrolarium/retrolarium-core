@@ -2,7 +2,7 @@
 //
 // retrolarium_kit.platform.nes.resources still decodes and encodes CHR for the Kit's own
 // build path, so while both implementations exist this holds them together.
-// The corpus comes from retrolarium-core/tools/generate-nes-tiles-golden.py.
+// The corpus comes from tools/generate-nes-tiles-golden.py.
 
 #include <retrolarium/core/nes_tiles.hpp>
 

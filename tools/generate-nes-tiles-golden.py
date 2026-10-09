@@ -9,7 +9,7 @@ for.
 Payloads are generated here, not lifted from a ROM.
 
 Usage:
-    python retrolarium-core/tools/generate-nes-tiles-golden.py <output.txt> [--check]
+    python tools/generate-nes-tiles-golden.py <output.txt> [--check]
 """
 
 from __future__ import annotations

@@ -11,7 +11,7 @@ produce well-formed input, not to compress well. Expected output always comes
 from ``retrolarium_core.oracles.nemesis``.
 
 Usage:
-    python retrolarium-core/tools/generate-nemesis-golden.py <output.txt> [--check]
+    python tools/generate-nemesis-golden.py <output.txt> [--check]
 """
 
 from __future__ import annotations

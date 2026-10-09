@@ -7,7 +7,7 @@ sides build the image from that description and record its SHA-256, so a
 builder that drifted is caught before anything is compared.
 
 Usage:
-    python retrolarium-core/tools/generate-fds-golden.py <output.txt> [--check]
+    python tools/generate-fds-golden.py <output.txt> [--check]
 """
 
 from __future__ import annotations

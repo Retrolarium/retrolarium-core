@@ -7,7 +7,7 @@ plus a seed; both sides materialise the body with the documented LCG below,
 so a disagreement about the body shows up as a SHA-256 mismatch.
 
 Usage:
-    python retrolarium-core/tools/generate-ines-golden.py <output.txt>
+    python tools/generate-ines-golden.py <output.txt>
 """
 
 from __future__ import annotations

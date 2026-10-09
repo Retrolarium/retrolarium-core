@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Emit the Studio project inspection corpus from the Python oracle.
 
-The fixtures live in retrolarium-core/tests/fixtures/studio_projects and all
+The fixtures live in tests/fixtures/studio_projects and all
 share one project root, so the corpus can record every path relative to it and
 stay machine independent.
 
@@ -12,7 +12,7 @@ fixture, so both sides perform the same two cross-checks - the schema against
 the platform, and the recorded SHA-256 against the project's.
 
 Usage:
-    python retrolarium-core/tools/generate-studio-project-golden.py <out.txt> [--check]
+    python tools/generate-studio-project-golden.py <out.txt> [--check]
 """
 
 from __future__ import annotations

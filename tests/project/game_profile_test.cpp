@@ -1,6 +1,6 @@
 // Cross-language parity for the game-profile contract.
 //
-// The corpus comes from retrolarium-core/tools/generate-game-profile-golden.py
+// The corpus comes from tools/generate-game-profile-golden.py
 // and is generated from the Kit's parse_game_profile, which stays the oracle.
 //
 // Accepted profiles are the packaged ones, copied into the fixtures beside

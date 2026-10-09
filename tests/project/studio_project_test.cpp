@@ -1,6 +1,6 @@
 // Cross-language parity for the Studio project contract.
 //
-// The corpus comes from retrolarium-core/tools/generate-studio-project-golden.py
+// The corpus comes from tools/generate-studio-project-golden.py
 // and is generated from the Kit's load_studio_project, which stays the oracle.
 //
 // Absolute paths differ on every machine, so both sides fold the fixture

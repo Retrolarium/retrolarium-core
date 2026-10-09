@@ -7,7 +7,7 @@ diverge, so this refuses to emit a non-ASCII encoding rather than letting that
 pass unnoticed.
 
 Usage:
-    python retrolarium-core/tools/generate-nes-text-golden.py <output.txt> [--check]
+    python tools/generate-nes-text-golden.py <output.txt> [--check]
 """
 
 from __future__ import annotations

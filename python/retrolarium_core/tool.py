@@ -48,8 +48,6 @@ def _checkout_candidates() -> list[Path]:
     here = Path(__file__).resolve()
     candidates: list[Path] = []
     for parent in list(here.parents)[:6]:
-        candidates.append(parent / "retrolarium" / "build" / "qt5-win-amd64"
-                          / _executable_name())
         candidates.append(parent / "build" / "core" / _executable_name())
         candidates.append(parent / "retrolarium-core" / "build" / _executable_name())
         # retrolarium-core as a repository of its own: <repo>/build/rlcore.

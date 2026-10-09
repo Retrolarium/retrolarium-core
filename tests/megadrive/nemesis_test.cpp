@@ -1,9 +1,9 @@
 // Cross-language parity for the Nemesis decoder.
 //
 // retrolarium_core owns the implementation Retrolarium and its Kit both use;
-// retrolarium-kit/oracles/nemesis.py is kept as the independent reference the
+// python/retrolarium_core/oracles/nemesis.py is kept as the independent reference the
 // port is checked against. The corpus comes from
-// retrolarium-core/tools/generate-nemesis-golden.py.
+// tools/generate-nemesis-golden.py.
 
 #include <retrolarium/core/nemesis.hpp>
 
