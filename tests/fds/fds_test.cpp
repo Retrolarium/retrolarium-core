@@ -1,7 +1,7 @@
 // Cross-language parity for the raw FDS side.
 //
-// The corpus comes from retrolarium_core/tools/generate-fds-golden.py and is
-// generated from retrolarium_kit.fds, which stays the oracle.
+// The corpus comes from retrolarium-core/tools/generate-fds-golden.py and is
+// generated from retrolarium_core.fds, which stays the oracle.
 //
 // A side is 65500 bytes, so the corpus describes one rather than carrying it.
 // Both sides build the image from that description and compare its SHA-256

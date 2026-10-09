@@ -7,9 +7,9 @@ import tempfile
 import unittest
 
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "python"))
 
-from retrolarium_kit.contracts import (
+from retrolarium_core.contracts import (
     ContractError,
     artifact_path,
     validate_disassembly_manifest,

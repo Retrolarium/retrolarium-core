@@ -1,6 +1,6 @@
 schema retrolarium.ines-golden
 schema_version 1
-generator retrolarium_kit.ines
+generator retrolarium_core.ines
 case nrom-16k-prg-8k-chr
 header 4e45531a010100000000000000000000
 body-seed 1

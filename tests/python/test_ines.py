@@ -5,9 +5,9 @@ from pathlib import Path
 import unittest
 
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "python"))
 
-from retrolarium_kit.ines import (
+from retrolarium_core.ines import (
     InesError,
     address_to_region_offset,
     cpu_to_prg_offset,

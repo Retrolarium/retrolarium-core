@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+# The Python face of Retrolarium Core: container parsers, the disassembly
+# manifest contract, the rlcore bridge and the reference codecs. The C++
+# library and rlcore build with CMake from the same repository.
+[project]
+name = "retrolarium-core"
+version = "0.5.0"
+description = "ROM containers, the disassembly manifest contract and the rlcore bridge for Retrolarium"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "GPL-3.0-or-later"}
+classifiers = [
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+]
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["python"]
+
+[tool.setuptools.package-data]
+retrolarium_core = ["schemas/*.json", "profiles/*.json"]

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Emit the Studio project inspection corpus from the Python oracle.
 
-The fixtures live in retrolarium_core/tests/fixtures/studio_projects and all
+The fixtures live in retrolarium-core/tests/fixtures/studio_projects and all
 share one project root, so the corpus can record every path relative to it and
 stay machine independent.
 
@@ -12,7 +12,7 @@ fixture, so both sides perform the same two cross-checks - the schema against
 the platform, and the recorded SHA-256 against the project's.
 
 Usage:
-    python retrolarium_core/tools/generate-studio-project-golden.py <out.txt> [--check]
+    python retrolarium-core/tools/generate-studio-project-golden.py <out.txt> [--check]
 """
 
 from __future__ import annotations
@@ -25,9 +25,9 @@ import tomllib
 from unittest import mock
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "retrolarium_kit" / "src"))
+sys.path.insert(0, str(REPO_ROOT / "retrolarium-kit" / "src"))
 
-FIXTURES = REPO_ROOT / "retrolarium_core" / "tests" / "fixtures" / "studio_projects"
+FIXTURES = REPO_ROOT / "retrolarium-core" / "tests" / "fixtures" / "studio_projects"
 
 SCHEMA = "retrolarium.studio-project-golden"
 SCHEMA_VERSION = 1
@@ -55,7 +55,7 @@ def read_manifest(project: Path, source: Mapping[str, object]) -> dict[str, obje
 
 
 def load(project: Path) -> dict[str, object]:
-    from retrolarium_kit.studio_project import load_studio_project
+    from retrolarium_kit.studio.project import load_studio_project
 
     try:
         source = tomllib.loads(project.read_text(encoding="utf-8"))
@@ -64,7 +64,7 @@ def load(project: Path) -> dict[str, object]:
         # manifest matters, so any stub will do.
         source = {}
     with mock.patch(
-        "retrolarium_kit.studio_project.load_disassembly_manifest",
+        "retrolarium_kit.studio.project.load_disassembly_manifest",
         return_value=read_manifest(project, source.get("source", {})),
     ):
         return load_studio_project(project)
@@ -99,13 +99,13 @@ def reject_cases() -> list[str]:
 
 
 def render() -> str:
-    from retrolarium_kit.studio_project import StudioProjectError
+    from retrolarium_kit.studio.project import StudioProjectError
 
     root = FIXTURES.resolve()
     lines = [
         f"schema {SCHEMA}",
         f"schema_version {SCHEMA_VERSION}",
-        "generator retrolarium_kit.studio_project",
+        "generator retrolarium_kit.studio.project",
         f"fixtures {FIXTURES.relative_to(REPO_ROOT).as_posix()}",
     ]
 

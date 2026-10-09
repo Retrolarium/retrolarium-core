@@ -23,7 +23,7 @@ import shutil
 import subprocess
 from typing import Sequence
 
-from .build_toolchains import normalize_host
+from retrolarium_core.host import normalize_host
 
 TOOL_NAME = "rlcore"
 ENVIRONMENT_OVERRIDE = "RETROLARIUM_CORE"
@@ -51,7 +51,9 @@ def _checkout_candidates() -> list[Path]:
         candidates.append(parent / "retrolarium" / "build" / "qt5-win-amd64"
                           / _executable_name())
         candidates.append(parent / "build" / "core" / _executable_name())
-        candidates.append(parent / "retrolarium_core" / "build" / _executable_name())
+        candidates.append(parent / "retrolarium-core" / "build" / _executable_name())
+        # retrolarium-core as a repository of its own: <repo>/build/rlcore.
+        candidates.append(parent / "build" / _executable_name())
     return candidates
 
 
@@ -76,7 +78,7 @@ def find_core_tool() -> Path:
         return Path(found)
 
     raise CoreToolError(
-        f"{TOOL_NAME} was not found. Build retrolarium_core, or set "
+        f"{TOOL_NAME} was not found. Build retrolarium-core, or set "
         f"{ENVIRONMENT_OVERRIDE} to the executable."
     )
 

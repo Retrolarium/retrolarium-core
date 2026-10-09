@@ -11,7 +11,7 @@ purpose: it is the oracle, and reaching for a public wrapper would drag in
 profile plumbing this corpus does not need.
 
 Usage:
-    python retrolarium_core/tools/generate-nes-ppu-packets-golden.py <output.txt> [--check]
+    python retrolarium-core/tools/generate-nes-ppu-packets-golden.py <output.txt> [--check]
 """
 
 from __future__ import annotations
@@ -20,9 +20,9 @@ from pathlib import Path
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "retrolarium_kit" / "src"))
+sys.path.insert(0, str(REPO_ROOT / "retrolarium-kit" / "src"))
 
-from retrolarium_kit.nes_screen_packets import (  # noqa: E402
+from retrolarium_kit.platform.nes.screen_packets import (  # noqa: E402
     NesScreenPacketError,
     _decode_commands,
 )
@@ -110,7 +110,7 @@ def render() -> str:
     lines = [
         f"schema {SCHEMA}",
         f"schema_version {SCHEMA_VERSION}",
-        "generator retrolarium_kit.nes_screen_packets",
+        "generator retrolarium_kit.platform.nes.screen_packets",
         f"terminator {TERMINATOR}",
     ]
     for name, payload in cases():

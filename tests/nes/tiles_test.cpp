@@ -1,8 +1,8 @@
 // Cross-language parity for NES 2bpp character data.
 //
-// retrolarium_kit.nes_resources still decodes and encodes CHR for the Kit's own
+// retrolarium_kit.platform.nes.resources still decodes and encodes CHR for the Kit's own
 // build path, so while both implementations exist this holds them together.
-// The corpus comes from retrolarium_core/tools/generate-nes-tiles-golden.py.
+// The corpus comes from retrolarium-core/tools/generate-nes-tiles-golden.py.
 
 #include <retrolarium/core/nes_tiles.hpp>
 

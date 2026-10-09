@@ -1,6 +1,6 @@
 schema retrolarium.enigma-golden
 schema_version 1
-generator retrolarium_kit.oracles.enigma
+generator retrolarium_core.oracles.enigma
 unreachable_modes 2,3
 case incrementing-run
 base_tile 0

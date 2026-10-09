@@ -3,7 +3,7 @@
 // Neither format has a standalone function in the Kit - the logic sits inside
 // decode_resources and build_resources - so the corpus is produced by driving
 // those through a real profile, in
-// retrolarium_core/tools/generate-nes-surfaces-golden.py.
+// retrolarium-core/tools/generate-nes-surfaces-golden.py.
 
 #include <retrolarium/core/nes_nametable.hpp>
 #include <retrolarium/core/nes_palette.hpp>

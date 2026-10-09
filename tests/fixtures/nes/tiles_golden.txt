@@ -1,6 +1,6 @@
 schema retrolarium.nes-tiles-golden
 schema_version 1
-generator retrolarium_kit.nes_resources
+generator retrolarium_kit.platform.nes.resources
 case empty
 payload 
 tiles 0

@@ -1,7 +1,7 @@
 // Cross-language parity for the PPU display-list grammar.
 //
-// The corpus comes from retrolarium_core/tools/generate-nes-ppu-packets-golden.py,
-// which drives retrolarium_kit.nes_screen_packets.
+// The corpus comes from retrolarium-core/tools/generate-nes-ppu-packets-golden.py,
+// which drives retrolarium_kit.platform.nes.screen_packets.
 
 #include <retrolarium/core/nes_ppu_packets.hpp>
 

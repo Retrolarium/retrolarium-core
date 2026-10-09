@@ -1,7 +1,7 @@
 // Cross-language parity for fixed-width text fields.
 //
-// The corpus comes from retrolarium_core/tools/generate-nes-text-golden.py,
-// which drives retrolarium_kit.nes_text.
+// The corpus comes from retrolarium-core/tools/generate-nes-text-golden.py,
+// which drives retrolarium_kit.platform.nes.text.
 
 #include <retrolarium/core/nes_text.hpp>
 

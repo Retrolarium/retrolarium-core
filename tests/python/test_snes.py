@@ -6,9 +6,9 @@ from pathlib import Path
 import unittest
 
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "python"))
 
-from retrolarium_kit.snes import (
+from retrolarium_core.snes import (
     HIROM_HEADER_OFFSET,
     LOROM_HEADER_OFFSET,
     SnesError,
@@ -76,9 +76,9 @@ def cartridge(
 class SnesTests(unittest.TestCase):
     def test_image_schema_is_versioned_and_matches_manifest_keys(self) -> None:
         schema_path = (
-            Path(__file__).resolve().parents[1]
-            / "src"
-            / "retrolarium_kit"
+            Path(__file__).resolve().parents[2]
+            / "python"
+            / "retrolarium_core"
             / "schemas"
             / "snes-image-v1.schema.json"
         )

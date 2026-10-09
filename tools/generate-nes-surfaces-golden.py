@@ -7,7 +7,7 @@ So this builds a real profile over a synthetic image and drives those, rather
 than restating the rules here. An oracle you paraphrase is not an oracle.
 
 Usage:
-    python retrolarium_core/tools/generate-nes-surfaces-golden.py <output.txt> [--check]
+    python retrolarium-core/tools/generate-nes-surfaces-golden.py <output.txt> [--check]
 """
 
 from __future__ import annotations
@@ -17,14 +17,14 @@ from pathlib import Path
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "retrolarium_kit" / "src"))
+sys.path.insert(0, str(REPO_ROOT / "retrolarium-kit" / "src"))
 
-from retrolarium_kit.authoring import (  # noqa: E402
+from retrolarium_kit.core.authoring import (  # noqa: E402
     GameProfile,
     ResourceSpec,
     RevisionSpec,
 )
-from retrolarium_kit.nes_resources import (  # noqa: E402
+from retrolarium_kit.platform.nes.resources import (  # noqa: E402
     build_resources,
     decode_resources,
     parse_resource_document,
@@ -177,7 +177,7 @@ def render() -> str:
     lines = [
         f"schema {SCHEMA}",
         f"schema_version {SCHEMA_VERSION}",
-        "generator retrolarium_kit.nes_resources",
+        "generator retrolarium_kit.platform.nes.resources",
         "",
         "palette-case contiguous",
         f"payload {palette_payload.hex()}",

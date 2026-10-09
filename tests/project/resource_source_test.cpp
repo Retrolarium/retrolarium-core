@@ -1,6 +1,6 @@
 // Cross-language parity for turning a resource into bytes.
 //
-// The corpus comes from retrolarium_core/tools/generate-resource-source-golden.py
+// The corpus comes from retrolarium-core/tools/generate-resource-source-golden.py
 // and is generated from the Kit's own helpers in nes_resources, which stay the
 // oracle.
 //

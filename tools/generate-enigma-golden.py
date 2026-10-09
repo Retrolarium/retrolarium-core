@@ -4,14 +4,14 @@
 Streams are assembled here rather than taken from a ROM. The builder is
 test-only: it exists to produce well-formed input covering every reachable
 code path, not to compress well. Expected output always comes from
-``retrolarium_kit.oracles.enigma``.
+``retrolarium_core.oracles.enigma``.
 
 Modes 2 and 3 are unreachable in this format as implemented - a six-bit code
 is at most 0x1F after its shift, and a seven-bit code is at least 0x40 - so no
 case can exercise them. That is verified here rather than assumed.
 
 Usage:
-    python retrolarium_core/tools/generate-enigma-golden.py <output.txt> [--check]
+    python retrolarium-core/tools/generate-enigma-golden.py <output.txt> [--check]
 """
 
 from __future__ import annotations
@@ -20,10 +20,11 @@ from pathlib import Path
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "retrolarium_kit" / "src"))
+sys.path.insert(0, str(REPO_ROOT / "retrolarium-kit" / "src"))
+sys.path.insert(0, str(REPO_ROOT / "retrolarium-core" / "python"))
 
-from retrolarium_kit.oracles.enigma import decompress  # noqa: E402
-from retrolarium_kit.oracles.enigma_encode import encode  # noqa: E402
+from retrolarium_core.oracles.enigma import decompress  # noqa: E402
+from retrolarium_core.oracles.enigma_encode import encode  # noqa: E402
 
 SCHEMA = "retrolarium.enigma-golden"
 SCHEMA_VERSION = 1
@@ -220,7 +221,7 @@ def render() -> str:
     lines = [
         f"schema {SCHEMA}",
         f"schema_version {SCHEMA_VERSION}",
-        "generator retrolarium_kit.oracles.enigma",
+        "generator retrolarium_core.oracles.enigma",
         f"unreachable_modes {','.join(str(mode) for mode in unreachable)}",
     ]
     for entry in cases():

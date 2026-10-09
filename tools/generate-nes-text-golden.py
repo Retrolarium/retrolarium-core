@@ -7,7 +7,7 @@ diverge, so this refuses to emit a non-ASCII encoding rather than letting that
 pass unnoticed.
 
 Usage:
-    python retrolarium_core/tools/generate-nes-text-golden.py <output.txt> [--check]
+    python retrolarium-core/tools/generate-nes-text-golden.py <output.txt> [--check]
 """
 
 from __future__ import annotations
@@ -16,9 +16,9 @@ from pathlib import Path
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "retrolarium_kit" / "src"))
+sys.path.insert(0, str(REPO_ROOT / "retrolarium-kit" / "src"))
 
-from retrolarium_kit.nes_text import (  # noqa: E402
+from retrolarium_kit.platform.nes.text import (  # noqa: E402
     NesTextError,
     TextEncoding,
     decode_text,
@@ -78,7 +78,7 @@ def render() -> str:
     lines = [
         f"schema {SCHEMA}",
         f"schema_version {SCHEMA_VERSION}",
-        "generator retrolarium_kit.nes_text",
+        "generator retrolarium_kit.platform.nes.text",
     ]
     for key, encoding in ENCODINGS.items():
         lines.append(f"encoding {key}")

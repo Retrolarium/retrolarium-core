@@ -1,6 +1,6 @@
 schema retrolarium.fds-golden
 schema_version 1
-generator retrolarium_kit.fds
+generator retrolarium_core.fds
 case two-files
 files 16:256:170;17:512:187
 side-sha256 d2a975b4e71b0359a57c82ac2642ec7d59d0de4e9780f553f2439313a8124d73

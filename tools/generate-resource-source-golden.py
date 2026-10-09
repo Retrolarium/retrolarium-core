@@ -10,7 +10,7 @@ The ROM image is described rather than carried, the way the FDS corpus does
 it, and both sides compare its SHA-256 before anything else.
 
 Usage:
-    python retrolarium_core/tools/generate-resource-source-golden.py <out.txt> [--check]
+    python retrolarium-core/tools/generate-resource-source-golden.py <out.txt> [--check]
 """
 
 from __future__ import annotations
@@ -21,11 +21,11 @@ from pathlib import Path
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "retrolarium_kit" / "src"))
+sys.path.insert(0, str(REPO_ROOT / "retrolarium-kit" / "src"))
 
-from retrolarium_kit.authoring import AuthoringError  # noqa: E402
-from retrolarium_kit.game_profiles import parse_game_profile  # noqa: E402
-from retrolarium_kit.nes_resources import (  # noqa: E402
+from retrolarium_kit.core.authoring import AuthoringError  # noqa: E402
+from retrolarium_kit.core.game_profiles import parse_game_profile  # noqa: E402
+from retrolarium_kit.platform.nes.resources import (  # noqa: E402
     NesResourceError,
     _encoded_resource_spans,
     _read_resource_spans,
@@ -199,7 +199,7 @@ def render() -> str:
     lines = [
         f"schema {SCHEMA}",
         f"schema_version {SCHEMA_VERSION}",
-        "generator retrolarium_kit.nes_resources",
+        "generator retrolarium_kit.platform.nes.resources",
         f"image-sha256 {IMAGE_SHA256}",
         f"image-size {IMAGE_SIZE}",
         f"prg-offset {HEADER_SIZE}",

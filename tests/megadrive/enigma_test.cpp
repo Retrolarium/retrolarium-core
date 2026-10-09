@@ -1,8 +1,8 @@
 // Cross-language parity for the Enigma decoder.
 //
-// retrolarium_core owns the implementation; retrolarium_kit/oracles/enigma.py
+// retrolarium_core owns the implementation; retrolarium-kit/oracles/enigma.py
 // is the independent reference it is checked against. The corpus comes from
-// retrolarium_core/tools/generate-enigma-golden.py.
+// retrolarium-core/tools/generate-enigma-golden.py.
 
 #include <retrolarium/core/enigma.hpp>
 

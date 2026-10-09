@@ -8,10 +8,10 @@ which also keeps ROM bytes out of the repository.
 
 The builder below is deliberately simple and is test-only - it exists to
 produce well-formed input, not to compress well. Expected output always comes
-from ``retrolarium_kit.oracles.nemesis``.
+from ``retrolarium_core.oracles.nemesis``.
 
 Usage:
-    python retrolarium_core/tools/generate-nemesis-golden.py <output.txt> [--check]
+    python retrolarium-core/tools/generate-nemesis-golden.py <output.txt> [--check]
 """
 
 from __future__ import annotations
@@ -20,10 +20,11 @@ from pathlib import Path
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "retrolarium_kit" / "src"))
+sys.path.insert(0, str(REPO_ROOT / "retrolarium-kit" / "src"))
+sys.path.insert(0, str(REPO_ROOT / "retrolarium-core" / "python"))
 
-from retrolarium_kit.oracles.nemesis import decompress  # noqa: E402
-from retrolarium_kit.oracles.nemesis_encode import compress  # noqa: E402
+from retrolarium_core.oracles.nemesis import decompress  # noqa: E402
+from retrolarium_core.oracles.nemesis_encode import compress  # noqa: E402
 
 SCHEMA = "retrolarium.nemesis-golden"
 SCHEMA_VERSION = 1
@@ -219,7 +220,7 @@ def render() -> str:
     lines = [
         f"schema {SCHEMA}",
         f"schema_version {SCHEMA_VERSION}",
-        "generator retrolarium_kit.oracles.nemesis",
+        "generator retrolarium_core.oracles.nemesis",
     ]
     for entry in cases():
         lines.append(f"case {entry['name']}")

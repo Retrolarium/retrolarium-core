@@ -7,7 +7,7 @@ sides build the image from that description and record its SHA-256, so a
 builder that drifted is caught before anything is compared.
 
 Usage:
-    python retrolarium_core/tools/generate-fds-golden.py <output.txt> [--check]
+    python retrolarium-core/tools/generate-fds-golden.py <output.txt> [--check]
 """
 
 from __future__ import annotations
@@ -17,9 +17,10 @@ from pathlib import Path
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "retrolarium_kit" / "src"))
+sys.path.insert(0, str(REPO_ROOT / "retrolarium-kit" / "src"))
+sys.path.insert(0, str(REPO_ROOT / "retrolarium-core" / "python"))
 
-from retrolarium_kit.fds import (  # noqa: E402
+from retrolarium_core.fds import (  # noqa: E402
     FdsError,
     fds_payload,
     fds_payload_ranges,
@@ -134,7 +135,7 @@ def render() -> str:
     lines = [
         f"schema {SCHEMA}",
         f"schema_version {SCHEMA_VERSION}",
-        "generator retrolarium_kit.fds",
+        "generator retrolarium_core.fds",
     ]
 
     for case in cases():

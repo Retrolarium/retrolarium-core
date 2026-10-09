@@ -8,7 +8,7 @@
 namespace retrolarium::core {
 
 // Raised when the input is not an iNES image the pipeline supports. Mirrors
-// retrolarium_kit.ines.InesError.
+// retrolarium_core.ines.InesError.
 class InesError : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;

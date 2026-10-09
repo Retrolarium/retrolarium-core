@@ -1,6 +1,6 @@
 schema retrolarium.nes-surfaces-golden
 schema_version 1
-generator retrolarium_kit.nes_resources
+generator retrolarium_kit.platform.nes.resources
 
 palette-case contiguous
 payload 0f3021023f001627

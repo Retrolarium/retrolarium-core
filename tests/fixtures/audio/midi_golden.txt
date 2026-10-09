@@ -1,6 +1,6 @@
 schema retrolarium.midi-parity
 schema_version 1
-generator retrolarium_kit.midi
+generator retrolarium_kit.core.midi
 case plain 0 0
 file 4d546864000000060001000100604d54726b0000001400903c6430803c00009040641880400000ff2f00
 division 96

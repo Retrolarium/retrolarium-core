@@ -1,6 +1,6 @@
 // Cross-language parity: the C++ iNES parser must agree with the Python
-// oracle in retrolarium_kit.ines. The corpus is produced by
-// retrolarium_core/tools/generate-ines-golden.py.
+// oracle in retrolarium_core.ines. The corpus is produced by
+// retrolarium-core/tools/generate-ines-golden.py.
 
 #include <retrolarium/core/ines.hpp>
 #include <retrolarium/core/sha256.hpp>

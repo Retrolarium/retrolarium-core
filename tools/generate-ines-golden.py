@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Emit the cross-language iNES parity corpus from the Python oracle.
 
-The C++ core must agree byte for byte with ``retrolarium_kit.ines``. Rather
+The C++ core must agree byte for byte with ``retrolarium_core.ines``. Rather
 than committing ROM fixtures, each case is described by its 16 header bytes
 plus a seed; both sides materialise the body with the documented LCG below,
 so a disagreement about the body shows up as a SHA-256 mismatch.
 
 Usage:
-    python retrolarium_core/tools/generate-ines-golden.py <output.txt>
+    python retrolarium-core/tools/generate-ines-golden.py <output.txt>
 """
 
 from __future__ import annotations
@@ -16,9 +16,10 @@ from pathlib import Path
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "retrolarium_kit" / "src"))
+sys.path.insert(0, str(REPO_ROOT / "retrolarium-kit" / "src"))
+sys.path.insert(0, str(REPO_ROOT / "retrolarium-core" / "python"))
 
-from retrolarium_kit.ines import (  # noqa: E402
+from retrolarium_core.ines import (  # noqa: E402
     InesError,
     parse_ines,
     parse_ines_prefix,
@@ -119,7 +120,7 @@ def render() -> str:
     lines = [
         f"schema {SCHEMA}",
         f"schema_version {SCHEMA_VERSION}",
-        "generator retrolarium_kit.ines",
+        "generator retrolarium_core.ines",
     ]
     for name, head, seed in CASES:
         emit_case(lines, name, head, seed)
