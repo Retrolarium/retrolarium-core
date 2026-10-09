@@ -5,8 +5,8 @@
 // those through a real profile, in
 // tools/generate-nes-surfaces-golden.py.
 
-#include <retrolarium/core/nes_nametable.hpp>
-#include <retrolarium/core/nes_palette.hpp>
+#include <retrolarium/core/nes/nametable.hpp>
+#include <retrolarium/core/nes/palette.hpp>
 
 #include <algorithm>
 #include <cstdint>

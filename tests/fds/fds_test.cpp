@@ -8,8 +8,8 @@
 // before anything else, so a builder that drifted fails here rather than
 // producing a misleading mismatch further down.
 
-#include <retrolarium/core/fds.hpp>
-#include <retrolarium/core/sha256.hpp>
+#include <retrolarium/core/fds/fds.hpp>
+#include <retrolarium/core/hash/sha256.hpp>
 
 #include <cstdint>
 #include <fstream>

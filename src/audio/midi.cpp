@@ -5,7 +5,7 @@
 // ROM channel has no way to express it and pretending otherwise would lose the
 // difference silently.
 
-#include <retrolarium/core/midi.hpp>
+#include <retrolarium/core/audio/midi.hpp>
 
 #include <algorithm>
 #include <set>

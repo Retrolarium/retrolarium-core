@@ -8,8 +8,8 @@
 // compare its SHA-256 first, so a builder that drifted fails there rather than
 // further down.
 
-#include <retrolarium/core/resource_source.hpp>
-#include <retrolarium/core/sha256.hpp>
+#include <retrolarium/core/project/resource_source.hpp>
+#include <retrolarium/core/hash/sha256.hpp>
 
 #include <cstdint>
 #include <fstream>

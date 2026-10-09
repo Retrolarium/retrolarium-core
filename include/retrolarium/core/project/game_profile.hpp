@@ -1,6 +1,6 @@
 #pragma once
 
-#include <retrolarium/core/value.hpp>
+#include <retrolarium/core/data/value.hpp>
 
 #include <cstdint>
 #include <map>

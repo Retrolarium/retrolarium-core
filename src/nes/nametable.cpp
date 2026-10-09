@@ -1,4 +1,4 @@
-#include <retrolarium/core/nes_nametable.hpp>
+#include <retrolarium/core/nes/nametable.hpp>
 
 #include <string>
 

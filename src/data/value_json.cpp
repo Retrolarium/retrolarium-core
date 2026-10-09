@@ -1,7 +1,7 @@
 // The one place that turns a Value into JSON and back. Keeping the parser in
 // a single translation unit is what lets the public headers stay free of it.
 
-#include <retrolarium/core/value.hpp>
+#include <retrolarium/core/data/value.hpp>
 
 #include <nlohmann/json.hpp>
 

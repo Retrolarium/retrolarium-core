@@ -1,8 +1,8 @@
-#include <retrolarium/core/resource_source.hpp>
+#include <retrolarium/core/project/resource_source.hpp>
 
-#include <retrolarium/core/fds.hpp>
-#include <retrolarium/core/ines.hpp>
-#include <retrolarium/core/sha1.hpp>
+#include <retrolarium/core/fds/fds.hpp>
+#include <retrolarium/core/nes/ines.hpp>
+#include <retrolarium/core/hash/sha1.hpp>
 
 #include <map>
 #include <set>

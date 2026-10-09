@@ -1,6 +1,6 @@
 #pragma once
 
-#include <retrolarium/core/game_profile.hpp>
+#include <retrolarium/core/project/game_profile.hpp>
 
 #include <cstdint>
 #include <stdexcept>

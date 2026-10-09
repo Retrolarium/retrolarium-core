@@ -1,4 +1,4 @@
-#include <retrolarium/core/sha1.hpp>
+#include <retrolarium/core/hash/sha1.hpp>
 
 #include <cstdint>
 #include <iostream>

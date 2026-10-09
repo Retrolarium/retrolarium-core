@@ -30,7 +30,7 @@ SCHEMA_VERSION = 1
 
 
 def fill(seed: int, size: int) -> bytes:
-    """Deterministic body bytes. Mirrored in ines_golden_test.cpp."""
+    """Deterministic body bytes. Mirrored in ines_test.cpp."""
 
     state = seed & 0x7FFFFFFF
     out = bytearray(size)

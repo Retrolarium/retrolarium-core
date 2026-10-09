@@ -1,4 +1,4 @@
-#include <retrolarium/core/nemesis.hpp>
+#include <retrolarium/core/megadrive/nemesis.hpp>
 
 #include <map>
 #include <utility>

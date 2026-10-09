@@ -4,10 +4,10 @@
 // stays a thin argument parser. Anything with real logic belongs in the
 // library, where both consumers and the tests reach it.
 
-#include <retrolarium/core/enigma.hpp>
-#include <retrolarium/core/ines.hpp>
-#include <retrolarium/core/nemesis.hpp>
-#include <retrolarium/core/sha256.hpp>
+#include <retrolarium/core/megadrive/enigma.hpp>
+#include <retrolarium/core/nes/ines.hpp>
+#include <retrolarium/core/megadrive/nemesis.hpp>
+#include <retrolarium/core/hash/sha256.hpp>
 
 #include <cstdint>
 #include <fstream>

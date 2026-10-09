@@ -4,7 +4,7 @@
 // is the independent reference it is checked against. The corpus comes from
 // tools/generate-enigma-golden.py.
 
-#include <retrolarium/core/enigma.hpp>
+#include <retrolarium/core/megadrive/enigma.hpp>
 
 #include <cstdint>
 #include <fstream>

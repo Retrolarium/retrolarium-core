@@ -1,4 +1,4 @@
-#include <retrolarium/core/studio_project.hpp>
+#include <retrolarium/core/project/studio_project.hpp>
 
 // The vendored TOML parser is heavy to compile, so it is included here and
 // nowhere else. See third_party/README.md.
@@ -46,10 +46,10 @@ const std::set<std::string> kGroups {"content", "assets", "tools"};
 const std::set<std::string> kPlatforms {"nes", "snes", "megadrive"};
 
 const std::set<std::string> kEditorKinds {
-    "animation.mapping", "audio.sequencer", "audio.synthesis", "castle.rooms",
-    "castle.room-cells",
-    "castle.metasprites",
-    "castle.mml-music",
+    "animation.mapping", "audio.sequencer", "audio.synthesis", "castle-excellent.rooms",
+    "castle-excellent.room-cells",
+    "castle-excellent.metasprites",
+    "castle-excellent.mml-music",
     "solomon.rooms", "solomon.mirrors", "solomon.special",
     "solomon.room-art", "solomon.sprite-frames", "solomon.audio",
     "solomon.screens", "solomon.presentation",
@@ -63,19 +63,19 @@ const std::set<std::string> kEditorKinds {
 };
 
 const std::set<std::string> kCodecs {
-    "castle.object-stream@1", "castle.prefix-rooms@1",
+    "castle-excellent.object-stream@1", "castle-excellent.prefix-rooms@1",
     "doraemon.hierarchy.v1",
-    "castle.room-cell-visuals.v1", "fds.synthesis.v1",
-    "castle.metasprite-descriptors.v1",
+    "castle-excellent.room-cell-visuals.v1", "fds.synthesis.v1",
+    "castle-excellent.metasprite-descriptors.v1",
     "flicky.levels.v1", "flicky.graphics.v1", "flicky.semantics.v1",
     "flicky.animations.v1", "flicky.sound.v1",
-    "castle.sub-command-text.v1", "castle.sfx-parameters.v1",
+    "castle-excellent.sub-command-text.v1", "castle-excellent.sfx-parameters.v1",
     "fds.music.v1", "nes.chr-2bpp.v1", "nes.fixed-text-fields.v1",
     "nes.metatile-2x2.v1", "nes.nametable.v1", "nes.palette-table.v1",
     "nes.ppu-palette-packets.v1", "nes.ppu-screen-packets.v1",
     "pacman.maze-rle.v1", "pacman.maze-rle@1", "pacman.actor-mapping.v1",
     "pacman.palette-table.v1", "pacman.screen-collection.v1",
-    "pacman.sound-streams.v1", "pacman.sound@1", "castle.mml-music.v1",
+    "pacman.sound-streams.v1", "pacman.sound@1", "castle-excellent.mml-music.v1",
     "retrolarium.megadrive.disassembly@1", "retrolarium.nes.disassembly@1",
     "retrolarium.snes.disassembly@1", "smb.apu@1", "smb.apu-envelope.v1",
     "smb.apu-music.v1", "smb.area@1", "smb.world.v1", "smb.levels.v1",
@@ -464,22 +464,20 @@ StudioInspection loadStudioProject(const std::string &path)
         if (result.platform != "megadrive" || result.profile != "flicky-ue.v1") {
             fail("project", "Flicky content requires megadrive/flicky-ue.v1");
         }
-        if (result.disassembly
-                != "flicky-source/config/authoring/content_studios.json") {
-            fail("source.manifest", "must name the imported Flicky content manifest");
+        if (result.disassembly != "flicky-source/retrolarium-flicky-snapshot.json") {
+            fail("source.manifest", "must name the Flicky source snapshot record");
         }
         if (result.sourceSha256
                 != "4df1a91e08376ae773a6eb8e5abe310f94ca39d8f81583b91a9477fedcb68c11") {
             fail("source.sha256", "does not match canonical Flicky (UE)");
         }
-        if (manifest.value("schema_version", Json()) != 1
-            || manifest.value("profile", Json()) != "canonical"
-            || manifest.value("image_size", Json()) != 131072
-            || manifest.value("image_sha1", Json())
-                != "83d8bbf0a9b38c42a0bf492d105cc3abe9644a96") {
-            fail("source.manifest", "is not the canonical Flicky content manifest");
+        if (manifest.value("schema", Json()) != "retrolarium.flicky-source-snapshot"
+            || manifest.value("schema_version", Json()) != 1
+            || manifest.value("canonical_sha256", Json())
+                != "4df1a91e08376ae773a6eb8e5abe310f94ca39d8f81583b91a9477fedcb68c11") {
+            fail("source.manifest", "is not a canonical Flicky source snapshot record");
         }
-        result.sourceSchema = "flicky.content-studios";
+        result.sourceSchema = "retrolarium.flicky-source-snapshot";
     } else {
         const auto schemaEntry = manifest.find("schema");
         if (schemaEntry == manifest.end() || !schemaEntry->is_string()

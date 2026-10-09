@@ -1,4 +1,4 @@
-#include <retrolarium/core/nes_ppu_packets.hpp>
+#include <retrolarium/core/nes/ppu_packets.hpp>
 
 namespace retrolarium::core {
 namespace {

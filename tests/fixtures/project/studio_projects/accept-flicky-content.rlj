@@ -9,7 +9,7 @@ profile = "flicky-ue.v1"
 source_mode = "flicky-content"
 
 [source]
-manifest = "flicky-source/config/authoring/content_studios.json"
+manifest = "flicky-source/retrolarium-flicky-snapshot.json"
 sha256 = "4df1a91e08376ae773a6eb8e5abe310f94ca39d8f81583b91a9477fedcb68c11"
 
 [workspace]

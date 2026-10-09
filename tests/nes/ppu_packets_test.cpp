@@ -3,7 +3,7 @@
 // The corpus comes from tools/generate-nes-ppu-packets-golden.py,
 // which drives retrolarium_kit.platform.nes.screen_packets.
 
-#include <retrolarium/core/nes_ppu_packets.hpp>
+#include <retrolarium/core/nes/ppu_packets.hpp>
 
 #include <cstdint>
 #include <fstream>

@@ -1,4 +1,4 @@
-#include <retrolarium/core/game_profile.hpp>
+#include <retrolarium/core/project/game_profile.hpp>
 
 #include <nlohmann/json.hpp>
 

@@ -5,7 +5,7 @@
 // port is checked against. The corpus comes from
 // tools/generate-nemesis-golden.py.
 
-#include <retrolarium/core/nemesis.hpp>
+#include <retrolarium/core/megadrive/nemesis.hpp>
 
 #include <cstdint>
 #include <fstream>

@@ -6,7 +6,7 @@
 // Absolute paths differ on every machine, so both sides fold the fixture
 // directory down to a <root> token before comparing.
 
-#include <retrolarium/core/studio_project.hpp>
+#include <retrolarium/core/project/studio_project.hpp>
 
 #include <fstream>
 #include <iostream>

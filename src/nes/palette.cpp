@@ -1,4 +1,4 @@
-#include <retrolarium/core/nes_palette.hpp>
+#include <retrolarium/core/nes/palette.hpp>
 
 #include <string>
 

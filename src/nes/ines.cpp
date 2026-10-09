@@ -1,6 +1,6 @@
-#include <retrolarium/core/ines.hpp>
+#include <retrolarium/core/nes/ines.hpp>
 
-#include <retrolarium/core/sha256.hpp>
+#include <retrolarium/core/hash/sha256.hpp>
 
 #include <fstream>
 #include <utility>

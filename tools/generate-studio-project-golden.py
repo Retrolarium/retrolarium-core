@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Emit the Studio project inspection corpus from the Python oracle.
 
-The fixtures live in tests/fixtures/studio_projects and all
+The fixtures live in tests/fixtures/project/studio_projects and all
 share one project root, so the corpus can record every path relative to it and
 stay machine independent.
 
@@ -27,7 +27,7 @@ from unittest import mock
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "retrolarium-kit" / "src"))
 
-FIXTURES = REPO_ROOT / "retrolarium-core" / "tests" / "fixtures" / "studio_projects"
+FIXTURES = REPO_ROOT / "retrolarium-core" / "tests" / "fixtures" / "project" / "studio_projects"
 
 SCHEMA = "retrolarium.studio-project-golden"
 SCHEMA_VERSION = 1

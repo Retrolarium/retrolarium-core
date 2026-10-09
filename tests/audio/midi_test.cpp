@@ -6,7 +6,7 @@
 // Files are carried whole: they are small, and the point of each is a byte
 // sequence the reader has to make a decision about.
 
-#include <retrolarium/core/midi.hpp>
+#include <retrolarium/core/audio/midi.hpp>
 
 #include <cstdint>
 #include <fstream>

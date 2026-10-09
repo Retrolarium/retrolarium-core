@@ -1,4 +1,4 @@
-#include <retrolarium/core/enigma.hpp>
+#include <retrolarium/core/megadrive/enigma.hpp>
 
 namespace retrolarium::core {
 namespace {

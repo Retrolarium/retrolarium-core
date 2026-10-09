@@ -1,4 +1,4 @@
-#include <retrolarium/core/nes_text.hpp>
+#include <retrolarium/core/nes/text.hpp>
 
 #include <algorithm>
 #include <cctype>

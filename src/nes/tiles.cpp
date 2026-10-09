@@ -1,4 +1,4 @@
-#include <retrolarium/core/nes_tiles.hpp>
+#include <retrolarium/core/nes/tiles.hpp>
 
 #include <string>
 

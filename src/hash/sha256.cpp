@@ -1,4 +1,4 @@
-#include <retrolarium/core/sha256.hpp>
+#include <retrolarium/core/hash/sha256.hpp>
 
 #include <algorithm>
 #include <cstring>

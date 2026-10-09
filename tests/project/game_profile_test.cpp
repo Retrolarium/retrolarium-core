@@ -8,7 +8,7 @@
 // ones are mutations of a small synthetic profile and travel inside the corpus,
 // so both loaders are handed the same bytes.
 
-#include <retrolarium/core/game_profile.hpp>
+#include <retrolarium/core/project/game_profile.hpp>
 
 #include <fstream>
 #include <iostream>

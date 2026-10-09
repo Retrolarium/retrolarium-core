@@ -1,6 +1,6 @@
-#include <retrolarium/core/build_plan.hpp>
+#include <retrolarium/core/project/build_plan.hpp>
 
-#include <retrolarium/core/sha256.hpp>
+#include <retrolarium/core/hash/sha256.hpp>
 
 #include <map>
 

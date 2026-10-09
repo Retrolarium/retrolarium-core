@@ -47,26 +47,26 @@ target_include_directories(retrolarium_json
 target_compile_features(retrolarium_json INTERFACE cxx_std_17)
 
 add_library(retrolarium_core STATIC
-    src/build_plan.cpp
-    src/enigma.cpp
-    src/midi.cpp
-    src/fds.cpp
-    src/enigma_encode.cpp
-    src/ines.cpp
-    src/nemesis.cpp
-    src/nes_nametable.cpp
-    src/nes_palette.cpp
-    src/nes_ppu_packets.cpp
-    src/nes_text.cpp
-    src/nes_tiles.cpp
-    src/nemesis_encode.cpp
-    src/resource_source.cpp
-    src/sha1.cpp
-    src/sha256.cpp
-    src/game_profile.cpp
-    src/studio_project.cpp
-    src/value.cpp
-    src/value_json.cpp
+    src/project/build_plan.cpp
+    src/megadrive/enigma.cpp
+    src/audio/midi.cpp
+    src/fds/fds.cpp
+    src/megadrive/enigma_encode.cpp
+    src/nes/ines.cpp
+    src/megadrive/nemesis.cpp
+    src/nes/nametable.cpp
+    src/nes/palette.cpp
+    src/nes/ppu_packets.cpp
+    src/nes/text.cpp
+    src/nes/tiles.cpp
+    src/megadrive/nemesis_encode.cpp
+    src/project/resource_source.cpp
+    src/hash/sha1.cpp
+    src/hash/sha256.cpp
+    src/project/game_profile.cpp
+    src/project/studio_project.cpp
+    src/data/value.cpp
+    src/data/value_json.cpp
 )
 add_library(retrolarium::core ALIAS retrolarium_core)
 # PRIVATE: the TOML parser is an implementation detail of one source file.
@@ -87,134 +87,134 @@ if(RETROLARIUM_CORE_BUILD_CLI)
 endif()
 
 if(RETROLARIUM_CORE_BUILD_TESTS AND BUILD_TESTING)
-    add_executable(retrolarium-core-toml-smoke-tests tests/toml_smoke_test.cpp)
+    add_executable(retrolarium-core-toml-smoke-tests tests/data/toml_smoke_test.cpp)
     target_link_libraries(retrolarium-core-toml-smoke-tests PRIVATE retrolarium_toml)
     retrolarium_core_enable_warnings(retrolarium-core-toml-smoke-tests)
     add_test(NAME core.toml_smoke COMMAND retrolarium-core-toml-smoke-tests)
 
-    add_executable(retrolarium-core-studio-project-golden-tests
-        tests/studio_project_golden_test.cpp)
-    target_link_libraries(retrolarium-core-studio-project-golden-tests
+    add_executable(retrolarium-core-studio-project-tests
+        tests/project/studio_project_test.cpp)
+    target_link_libraries(retrolarium-core-studio-project-tests
         PRIVATE retrolarium_core)
     retrolarium_core_enable_warnings(
-        retrolarium-core-studio-project-golden-tests)
+        retrolarium-core-studio-project-tests)
     add_test(NAME core.studio_project_parity
-        COMMAND retrolarium-core-studio-project-golden-tests
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/studio_project_golden.txt
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/studio_projects
+        COMMAND retrolarium-core-studio-project-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/project/studio_project_golden.txt
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/project/studio_projects
     )
 
-    add_executable(retrolarium-core-game-profile-golden-tests
-        tests/game_profile_golden_test.cpp)
-    target_link_libraries(retrolarium-core-game-profile-golden-tests
+    add_executable(retrolarium-core-game-profile-tests
+        tests/project/game_profile_test.cpp)
+    target_link_libraries(retrolarium-core-game-profile-tests
         PRIVATE retrolarium_core)
-    retrolarium_core_enable_warnings(retrolarium-core-game-profile-golden-tests)
+    retrolarium_core_enable_warnings(retrolarium-core-game-profile-tests)
     add_test(NAME core.game_profile_parity
-        COMMAND retrolarium-core-game-profile-golden-tests
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/game_profile_golden.txt
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/game_profiles
+        COMMAND retrolarium-core-game-profile-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/project/game_profile_golden.txt
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/project/game_profiles
     )
 
-    add_executable(retrolarium-core-sha256-tests tests/sha256_test.cpp)
+    add_executable(retrolarium-core-sha256-tests tests/hash/sha256_test.cpp)
     target_link_libraries(retrolarium-core-sha256-tests PRIVATE retrolarium_core)
     retrolarium_core_enable_warnings(retrolarium-core-sha256-tests)
     add_test(NAME core.sha256 COMMAND retrolarium-core-sha256-tests)
 
-    add_executable(retrolarium-core-sha1-tests tests/sha1_test.cpp)
+    add_executable(retrolarium-core-sha1-tests tests/hash/sha1_test.cpp)
     target_link_libraries(retrolarium-core-sha1-tests PRIVATE retrolarium_core)
     retrolarium_core_enable_warnings(retrolarium-core-sha1-tests)
     add_test(NAME core.sha1 COMMAND retrolarium-core-sha1-tests)
 
-    add_executable(retrolarium-core-fds-golden-tests tests/fds_golden_test.cpp)
-    target_link_libraries(retrolarium-core-fds-golden-tests PRIVATE retrolarium_core)
-    retrolarium_core_enable_warnings(retrolarium-core-fds-golden-tests)
+    add_executable(retrolarium-core-fds-tests tests/fds/fds_test.cpp)
+    target_link_libraries(retrolarium-core-fds-tests PRIVATE retrolarium_core)
+    retrolarium_core_enable_warnings(retrolarium-core-fds-tests)
     add_test(NAME core.fds_parity
-        COMMAND retrolarium-core-fds-golden-tests
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/fds_golden.txt
+        COMMAND retrolarium-core-fds-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/fds/fds_golden.txt
     )
 
-    add_executable(retrolarium-core-resource-source-golden-tests
-        tests/resource_source_golden_test.cpp)
-    target_link_libraries(retrolarium-core-resource-source-golden-tests
+    add_executable(retrolarium-core-resource-source-tests
+        tests/project/resource_source_test.cpp)
+    target_link_libraries(retrolarium-core-resource-source-tests
         PRIVATE retrolarium_core)
     retrolarium_core_enable_warnings(
-        retrolarium-core-resource-source-golden-tests)
+        retrolarium-core-resource-source-tests)
     add_test(NAME core.resource_source_parity
-        COMMAND retrolarium-core-resource-source-golden-tests
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/resource_source_golden.txt
+        COMMAND retrolarium-core-resource-source-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/project/resource_source_golden.txt
     )
 
-    add_executable(retrolarium-core-ines-golden-tests tests/ines_golden_test.cpp)
-    target_link_libraries(retrolarium-core-ines-golden-tests PRIVATE retrolarium_core)
-    retrolarium_core_enable_warnings(retrolarium-core-ines-golden-tests)
+    add_executable(retrolarium-core-ines-tests tests/nes/ines_test.cpp)
+    target_link_libraries(retrolarium-core-ines-tests PRIVATE retrolarium_core)
+    retrolarium_core_enable_warnings(retrolarium-core-ines-tests)
     add_test(NAME core.ines_parity
-        COMMAND retrolarium-core-ines-golden-tests
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/ines_golden.txt
+        COMMAND retrolarium-core-ines-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nes/ines_golden.txt
     )
 
-    add_executable(retrolarium-core-nemesis-golden-tests tests/nemesis_golden_test.cpp)
-    target_link_libraries(retrolarium-core-nemesis-golden-tests PRIVATE retrolarium_core)
-    retrolarium_core_enable_warnings(retrolarium-core-nemesis-golden-tests)
+    add_executable(retrolarium-core-nemesis-tests tests/megadrive/nemesis_test.cpp)
+    target_link_libraries(retrolarium-core-nemesis-tests PRIVATE retrolarium_core)
+    retrolarium_core_enable_warnings(retrolarium-core-nemesis-tests)
     add_test(NAME core.nemesis_parity
-        COMMAND retrolarium-core-nemesis-golden-tests
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nemesis_golden.txt
+        COMMAND retrolarium-core-nemesis-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/megadrive/nemesis_golden.txt
     )
 
-    add_executable(retrolarium-core-enigma-golden-tests tests/enigma_golden_test.cpp)
-    target_link_libraries(retrolarium-core-enigma-golden-tests PRIVATE retrolarium_core)
-    retrolarium_core_enable_warnings(retrolarium-core-enigma-golden-tests)
+    add_executable(retrolarium-core-enigma-tests tests/megadrive/enigma_test.cpp)
+    target_link_libraries(retrolarium-core-enigma-tests PRIVATE retrolarium_core)
+    retrolarium_core_enable_warnings(retrolarium-core-enigma-tests)
     add_test(NAME core.enigma_parity
-        COMMAND retrolarium-core-enigma-golden-tests
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/enigma_golden.txt
+        COMMAND retrolarium-core-enigma-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/megadrive/enigma_golden.txt
     )
 
-    add_executable(retrolarium-core-nes-tiles-golden-tests
-        tests/nes_tiles_golden_test.cpp)
-    target_link_libraries(retrolarium-core-nes-tiles-golden-tests
+    add_executable(retrolarium-core-nes-tiles-tests
+        tests/nes/tiles_test.cpp)
+    target_link_libraries(retrolarium-core-nes-tiles-tests
         PRIVATE retrolarium_core)
-    retrolarium_core_enable_warnings(retrolarium-core-nes-tiles-golden-tests)
+    retrolarium_core_enable_warnings(retrolarium-core-nes-tiles-tests)
     add_test(NAME core.nes_tiles_parity
-        COMMAND retrolarium-core-nes-tiles-golden-tests
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nes_tiles_golden.txt
+        COMMAND retrolarium-core-nes-tiles-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nes/tiles_golden.txt
     )
 
-    add_executable(retrolarium-core-nes-surfaces-golden-tests
-        tests/nes_surfaces_golden_test.cpp)
-    target_link_libraries(retrolarium-core-nes-surfaces-golden-tests
+    add_executable(retrolarium-core-nes-surfaces-tests
+        tests/nes/surfaces_test.cpp)
+    target_link_libraries(retrolarium-core-nes-surfaces-tests
         PRIVATE retrolarium_core)
-    retrolarium_core_enable_warnings(retrolarium-core-nes-surfaces-golden-tests)
+    retrolarium_core_enable_warnings(retrolarium-core-nes-surfaces-tests)
     add_test(NAME core.nes_surfaces_parity
-        COMMAND retrolarium-core-nes-surfaces-golden-tests
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nes_surfaces_golden.txt
+        COMMAND retrolarium-core-nes-surfaces-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nes/surfaces_golden.txt
     )
 
-    add_executable(retrolarium-core-nes-ppu-packets-golden-tests
-        tests/nes_ppu_packets_golden_test.cpp)
-    target_link_libraries(retrolarium-core-nes-ppu-packets-golden-tests
+    add_executable(retrolarium-core-nes-ppu-packets-tests
+        tests/nes/ppu_packets_test.cpp)
+    target_link_libraries(retrolarium-core-nes-ppu-packets-tests
         PRIVATE retrolarium_core)
-    retrolarium_core_enable_warnings(retrolarium-core-nes-ppu-packets-golden-tests)
+    retrolarium_core_enable_warnings(retrolarium-core-nes-ppu-packets-tests)
     add_test(NAME core.nes_ppu_packets_parity
-        COMMAND retrolarium-core-nes-ppu-packets-golden-tests
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nes_ppu_packets_golden.txt
+        COMMAND retrolarium-core-nes-ppu-packets-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nes/ppu_packets_golden.txt
     )
 
-    add_executable(retrolarium-core-midi-golden-tests
-        tests/midi_golden_test.cpp)
-    target_link_libraries(retrolarium-core-midi-golden-tests
+    add_executable(retrolarium-core-midi-tests
+        tests/audio/midi_test.cpp)
+    target_link_libraries(retrolarium-core-midi-tests
         PRIVATE retrolarium_core)
-    retrolarium_core_enable_warnings(retrolarium-core-midi-golden-tests)
+    retrolarium_core_enable_warnings(retrolarium-core-midi-tests)
     add_test(NAME core.midi_parity
-        COMMAND retrolarium-core-midi-golden-tests
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/midi_golden.txt
+        COMMAND retrolarium-core-midi-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/audio/midi_golden.txt
     )
 
-    add_executable(retrolarium-core-nes-text-golden-tests
-        tests/nes_text_golden_test.cpp)
-    target_link_libraries(retrolarium-core-nes-text-golden-tests
+    add_executable(retrolarium-core-nes-text-tests
+        tests/nes/text_test.cpp)
+    target_link_libraries(retrolarium-core-nes-text-tests
         PRIVATE retrolarium_core)
-    retrolarium_core_enable_warnings(retrolarium-core-nes-text-golden-tests)
+    retrolarium_core_enable_warnings(retrolarium-core-nes-text-tests)
     add_test(NAME core.nes_text_parity
-        COMMAND retrolarium-core-nes-text-golden-tests
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nes_text_golden.txt
+        COMMAND retrolarium-core-nes-text-tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/nes/text_golden.txt
     )
 endif()

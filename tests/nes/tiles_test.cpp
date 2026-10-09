@@ -4,7 +4,7 @@
 // build path, so while both implementations exist this holds them together.
 // The corpus comes from tools/generate-nes-tiles-golden.py.
 
-#include <retrolarium/core/nes_tiles.hpp>
+#include <retrolarium/core/nes/tiles.hpp>
 
 #include <cstdint>
 #include <fstream>

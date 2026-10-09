@@ -22,7 +22,7 @@ class LayerTests(unittest.TestCase):
                 elif isinstance(node, ast.Import):
                     names = [alias.name for alias in node.names]
                 for name in names:
-                    if name.split(".")[0] in ("retrolarium_kit", "retrolarium_disasm"):
+                    if name.split(".")[0] in ("retrolarium_kit", "retrolarium_disassembler"):
                         offenders.append(f"{path.relative_to(PACKAGE)}:{node.lineno} imports {name}")
         self.assertEqual([], offenders)
 
