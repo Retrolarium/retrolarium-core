@@ -46,11 +46,11 @@ ENCODINGS = {"upper": UPPER, "none": NONE, "lower": LOWER}
 def encode_cases() -> list[tuple[str, str, str, int]]:
     """(name, encoding key, text, field width)."""
     return [
-        ("plain", "upper", "HERO", 8),
+        ("plain", "upper", "HELLO", 8),
         ("exact-width", "upper", "WORLD 1-1", 9),
         ("empty", "upper", "", 6),
-        ("case-folded-up", "upper", "hero", 8),
-        ("case-folded-down", "lower", "HERO", 8),
+        ("case-folded-up", "upper", "hello", 8),
+        ("case-folded-down", "lower", "HELLO", 8),
         ("no-folding", "none", "ABC", 5),
         ("digits", "upper", "000000", 6),
         ("hyphen", "upper", "1-2", 4),
@@ -61,10 +61,10 @@ def encode_cases() -> list[tuple[str, str, str, int]]:
 def rejection_cases() -> list[tuple[str, str, str, int]]:
     return [
         ("too-long", "upper", "SUPERLONG", 4),
-        ("unsupported-character", "upper", "HERO!", 8),
+        ("unsupported-character", "upper", "HELLO!", 8),
         # Folding happens first, so a lowercase letter absent from an
         # unfolded table is still rejected.
-        ("unfolded-lowercase", "none", "hero", 8),
+        ("unfolded-lowercase", "none", "hello", 8),
     ]
 
 

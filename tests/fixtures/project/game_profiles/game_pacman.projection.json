@@ -329,8 +329,8 @@
             "width": 21
           },
           {
-            "key": "attract-chaser",
-            "label": "Attract: CHASER",
+            "key": "attract-nickname-1",
+            "label": "Attract: ghost 1 nickname",
             "path": [
               "attract_packets",
               1,
@@ -340,8 +340,8 @@
             "width": 11
           },
           {
-            "key": "attract-red",
-            "label": "Attract: RED",
+            "key": "attract-name-1",
+            "label": "Attract: ghost 1 name",
             "path": [
               "attract_packets",
               2,
@@ -351,8 +351,8 @@
             "width": 6
           },
           {
-            "key": "attract-ambusher",
-            "label": "Attract: AMBUSHER",
+            "key": "attract-nickname-2",
+            "label": "Attract: ghost 2 nickname",
             "path": [
               "attract_packets",
               3,
@@ -362,8 +362,8 @@
             "width": 11
           },
           {
-            "key": "attract-pink",
-            "label": "Attract: PINK",
+            "key": "attract-name-2",
+            "label": "Attract: ghost 2 name",
             "path": [
               "attract_packets",
               4,
@@ -373,8 +373,8 @@
             "width": 5
           },
           {
-            "key": "attract-feigner",
-            "label": "Attract: FEIGNER",
+            "key": "attract-nickname-4",
+            "label": "Attract: ghost 4 nickname",
             "path": [
               "attract_packets",
               7,
@@ -384,8 +384,8 @@
             "width": 11
           },
           {
-            "key": "attract-orange",
-            "label": "Attract: ORANGE",
+            "key": "attract-name-4",
+            "label": "Attract: ghost 4 name",
             "path": [
               "attract_packets",
               8,

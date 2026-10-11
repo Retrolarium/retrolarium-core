@@ -189,7 +189,7 @@
           "payload": "prg",
           "parameters": {
             "fields": [
-              {"key": "brother-name", "label": "Brother name", "file_offset": 2537, "width": 5}
+              {"key": "second-player-name", "label": "Second player name", "file_offset": 2537, "width": 5}
             ]
           }
         },
@@ -356,7 +356,7 @@
           "payload": "prg",
           "parameters": {
             "fields": [
-              {"key": "brother-name", "label": "Brother name", "file_offset": 2035, "width": 5}
+              {"key": "second-player-name", "label": "Second player name", "file_offset": 2035, "width": 5}
             ]
           }
         },
@@ -799,8 +799,8 @@
             },
             "text_fields": [
               {"key": "copyright", "label": "Copyright", "screen": "title", "address": 8687, "width": 13},
-              {"key": "hero-game", "label": "Hero game", "screen": "title", "address": 8781, "width": 10},
-              {"key": "brother-game", "label": "Brother game", "screen": "title", "address": 8845, "width": 10},
+              {"key": "one-player-game", "label": "1 player game", "screen": "title", "address": 8781, "width": 10},
+              {"key": "two-player-game", "label": "2 player game", "screen": "title", "address": 8845, "width": 10},
               {"key": "top-score", "label": "Top score", "screen": "title", "address": 8941, "width": 4}
             ],
             "screens": [
@@ -1348,8 +1348,8 @@
             },
             "text_fields": [
               {"key": "copyright", "label": "Copyright", "screen": "title", "address": 8688, "width": 13},
-              {"key": "hero-game", "label": "Hero game", "screen": "title", "address": 8781, "width": 10},
-              {"key": "brother-game", "label": "Brother game", "screen": "title", "address": 8845, "width": 10},
+              {"key": "one-player-game", "label": "1 player game", "screen": "title", "address": 8781, "width": 10},
+              {"key": "two-player-game", "label": "2 player game", "screen": "title", "address": 8845, "width": 10},
               {"key": "top-score", "label": "Top score", "screen": "title", "address": 8939, "width": 4}
             ],
             "screens": [
@@ -1726,7 +1726,7 @@
           "padding": 36
         },
         "fields": [
-          {"key": "brother-name", "label": "Brother name", "file_offset": 2045, "width": 5}
+          {"key": "second-player-name", "label": "Second player name", "file_offset": 2045, "width": 5}
         ]
       }
     },

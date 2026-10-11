@@ -21,10 +21,10 @@ padding 16
 end
 case plain
 encoding-key upper
-text HERO
+text HELLO
 width 8
-payload 3b2f40373d242424
-decoded HERO
+payload 36333a3a3d242424
+decoded HELLO
 end
 case exact-width
 encoding-key upper
@@ -42,17 +42,17 @@ decoded
 end
 case case-folded-up
 encoding-key upper
-text hero
+text hello
 width 8
-payload 3b2f40373d242424
-decoded HERO
+payload 36333a3a3d242424
+decoded HELLO
 end
 case case-folded-down
 encoding-key lower
-text HERO
+text HELLO
 width 8
-payload 1d1122191f101010
-decoded hero
+payload 18151c1c1f101010
+decoded hello
 end
 case no-folding
 encoding-key none
@@ -89,12 +89,12 @@ width 4
 end
 reject-case unsupported-character
 encoding-key upper
-text HERO!
+text HELLO!
 width 8
 end
 reject-case unfolded-lowercase
 encoding-key none
-text hero
+text hello
 width 8
 end
 reject-decode unmapped
