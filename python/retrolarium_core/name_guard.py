@@ -100,17 +100,41 @@ class Guard:
 
     def matches(self, line: str) -> list[str]:
         """The guarded phrases in a line, as the words that matched."""
-        line = strip_titles(line)
-        found: list[str] = []
-        tokens = words(line)
+        return [phrase for _line, phrase in self.matches_text(line)]
+
+    def matches_text(self, text: str) -> list[tuple[int, str]]:
+        """The guarded phrases in a text with the line each starts on; a phrase
+        may run over a line break, as wrapped prose and comments do."""
+        text = strip_titles(text)
+        tokens: list[tuple[int, str]] = []
+        line, position = 1, 0
+        for chunk in _CHUNK_RE.finditer(text):
+            line += text.count("\n", position, chunk.start())
+            position = chunk.start()
+            tokens.extend((line, part.lower()) for part in _PART_RE.findall(chunk.group(0)))
+        found: list[tuple[int, str]] = []
         for start in range(len(tokens)):
             for length in range(1, self.max_words + 1):
                 if start + length > len(tokens):
                     break
-                phrase = " ".join(tokens[start : start + length])
-                if hashlib.sha256(phrase.encode("utf-8")).hexdigest() in self.digests:
-                    found.append(phrase)
+                phrase = " ".join(word for _line, word in tokens[start : start + length])
+                if any(hashlib.sha256(form.encode("utf-8")).hexdigest() in self.digests
+                       for form in _singulars(phrase)):
+                    found.append((tokens[start][0], phrase))
         return found
+
+
+def _singulars(phrase: str) -> tuple[str, ...]:
+    """The phrase and, when its last word looks plural, its singular forms:
+    a guarded name is caught in the plural too (seals, ponies, boxes)."""
+    forms = [phrase]
+    if phrase.endswith("ies") and len(phrase) > 4:
+        forms.append(phrase[:-3] + "y")
+    if phrase.endswith("es") and len(phrase) > 3:
+        forms.append(phrase[:-2])
+    if phrase.endswith("s") and not phrase.endswith("ss") and len(phrase) > 2:
+        forms.append(phrase[:-1])
+    return tuple(forms)
 
 
 @dataclass(frozen=True)
@@ -156,9 +180,8 @@ def check_names(root: Path, guard: Guard | None = None) -> list[Finding]:
         text = _read(root, relative)
         if text is None:
             continue
-        for number, line in enumerate(strip_titles(text).splitlines(), 1):
-            for phrase in guard.matches(line):
-                findings.append(Finding(relative, number, f"in-game name '{phrase}'"))
+        for number, phrase in guard.matches_text(text):
+            findings.append(Finding(relative, number, f"in-game name '{phrase}'"))
         for phrase in guard.matches(relative):
             findings.append(Finding(relative, 0, f"in-game name '{phrase}' in the path"))
     return findings

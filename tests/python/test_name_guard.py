@@ -35,6 +35,18 @@ class WordTests(unittest.TestCase):
             self.assertEqual(["final boss"], guard.matches(line), line)
         self.assertEqual([], guard.matches("the final round"))
 
+    def test_a_name_is_caught_in_the_plural(self) -> None:
+        guard = Guard(frozenset({digest("royal seal"), digest("pony"), digest("box")}), 2)
+        self.assertEqual(["royal seals"], guard.matches("the eight Royal Seals"))
+        self.assertEqual(["ponies"], guard.matches("kPonies"))
+        self.assertEqual(["boxes"], guard.matches("boxes"))
+        self.assertEqual([], guard.matches("the royal seas"))
+
+    def test_a_name_is_caught_over_a_line_break(self) -> None:
+        guard = Guard(frozenset({digest("royal seal")}), 2)
+        text = "first line\nthe eight Royal\n# Seals hide\n"
+        self.assertEqual([(2, "royal seals")], guard.matches_text(text))
+
     def test_a_title_is_not_a_name(self) -> None:
         # A title stays even when one of its words is guarded, across lines
         # and string literals too.
