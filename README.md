@@ -160,10 +160,11 @@ rlcore enigma compress map.bin map.eni
 
 Retrolarium carries nothing taken from a game: no names of its characters,
 enemies, items or places, and no tables copied from it. The game repositories
-keep those (`config/names.json`, read when a project opens). The name guard
-checks a repository against the names they mark as distinctive, stored only as
-SHA-256 digests (`retrolarium_core/name_guard.sha256`), and against literal runs
-of 24 numbers or more outside `third_party` trees and the files its
+keep those (`config/names.json` and the game's profile,
+`config/game_profile.json`, read when a project opens). The name guard checks a
+repository against the names they mark as distinctive, stored only as SHA-256
+digests (`retrolarium_core/name_guard.sha256`), and against literal runs of 24
+numbers or more outside `third_party` trees and the files its
 `name_guard_tables.txt` explains. Game titles stay. Core, kit, studio and
 disassembler run it in their tests.
 

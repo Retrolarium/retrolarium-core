@@ -3,8 +3,8 @@
 // The corpus comes from tools/generate-game-profile-golden.py
 // and is generated from the Kit's parse_game_profile, which stays the oracle.
 //
-// Accepted profiles are the packaged ones, copied into the fixtures beside
-// their expected projections so the core's tests stay self-contained. Refused
+// The accepted file profile, the Kit's HonkeyPong, is copied into the fixtures
+// beside its expected projection so the core's tests stay self-contained. Refused
 // ones are mutations of a small synthetic profile and travel inside the corpus,
 // so both loaders are handed the same bytes.
 
