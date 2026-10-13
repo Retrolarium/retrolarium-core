@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://retrolarium.dev/schemas/megadrive-disassembly-v1.schema.json",
+  "$id": "https://raw.githubusercontent.com/Retrolarium/retrolarium-core/main/python/retrolarium_core/schemas/megadrive-disassembly-v1.schema.json",
   "title": "Retrolarium Mega Drive disassembly project",
   "type": "object",
   "additionalProperties": false,
