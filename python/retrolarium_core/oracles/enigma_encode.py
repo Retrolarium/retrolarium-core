@@ -1,7 +1,7 @@
 """Enigma encoder kept as the oracle for the C++ port in retrolarium_core.
 
 Ported verbatim from flicky_src scripts/formats/enigma_enc.py at commit
-457eca1061047aec04fe5d6146958e8d0d0c8c77.
+f63d285b6546743be14b37b66e09807b8444277b.
 
 This is an optimising encoder, so byte-for-byte agreement with the port rests
 on two things that look incidental but are not: candidates are considered in

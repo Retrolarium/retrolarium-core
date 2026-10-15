@@ -1,7 +1,7 @@
 """Nemesis decoder kept as the oracle for the C++ port in retrolarium_core.
 
 Ported verbatim from flicky_src scripts/formats/nemesis_dec.py at commit
-457eca1061047aec04fe5d6146958e8d0d0c8c77. It is no longer the implementation
+f63d285b6546743be14b37b66e09807b8444277b. It is no longer the implementation
 Retrolarium uses - retrolarium_core owns that - but it stays here so the C++
 decoder is checked against something written independently of it.
 
