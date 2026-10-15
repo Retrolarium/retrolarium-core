@@ -174,6 +174,43 @@ python -m retrolarium_core.name_guard tables path\to\repository
 python -m retrolarium_core.name_guard update path\to\game-repositories
 ```
 
+## Stop words and Git hooks
+
+Private words (the owner's folders, employers, identities and internal project
+names) must never reach a public repository. They are listed outside every
+repository, in a `.stopwords` file that Git ignores: the first one found in the
+repository's folder or a folder above it, or the file `RETROLARIUM_STOPWORDS`
+names. The list has `[en]` and `[ru]` sections of words and an `[allow]` section
+of longer texts in which a word is fine. Matching ignores case; inside a word,
+`_`, `-` and a space match any one of them or nothing; a stem finds its
+inflected forms. Without a list every check says in capitals that the stop words
+were not checked.
+
+```powershell
+python -m retrolarium_core.stop_words check path\to\repository
+python -m retrolarium_core.stop_words history path\to\repository
+python -m retrolarium_core.stop_words where
+```
+
+`check` reads a working tree (contents and paths); `history` reads everything
+reachable from the branches and tags: commit and tag messages, author, committer
+and tagger identities, every path and the contents of every blob. The tests of
+core, kit, studio and disassembler check the tree, and the history when they run
+in a clone of their own repository.
+
+`retrolarium_core.hooks` makes Git run the checks. Each repository,
+Retrolarium's and the games', installs it once per clone, here with
+`make hooks`:
+
+- **pre-commit** checks the staged changes, then runs `make lint` and
+  `make format-check` when the Makefile has them;
+- **commit-msg** checks the message and the author and committer identities;
+- **pre-push** checks everything the push sends.
+
+`make lint` checks the tree for stop words; `make format` formats the Markdown
+with mdformat and mdformat-gfm (`pip install mdformat mdformat-gfm`), and
+`make format-check` only reports.
+
 ## Trademarks
 
 The games are named only to say which ones Retrolarium works with. Their titles
