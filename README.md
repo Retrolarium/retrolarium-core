@@ -207,6 +207,10 @@ Retrolarium's and the games', installs it once per clone, here with
 - **commit-msg** checks the message and the author and committer identities;
 - **pre-push** checks everything the push sends.
 
+`install --env NAME=VALUE` sets a variable for the hooks and the make targets
+they run; the kit's `rltool hooks install` sets `RLTOOL` that way for the game
+repositories.
+
 `make lint` checks the tree for stop words; `make format` formats the Markdown
 with mdformat and mdformat-gfm (`pip install mdformat mdformat-gfm`), and
 `make format-check` only reports.

@@ -12,14 +12,16 @@ with the Python and the retrolarium_core it was installed from:
 
 Without a stop-word list the hooks say in capitals that the stop words were
 not checked, and go on. `git commit --no-verify` and `git push --no-verify`
-skip them. RETROLARIUM_HOOKS_MAKE=0 skips the make targets.
+skip them. RETROLARIUM_HOOKS_MAKE=0 skips the make targets. `--env NAME=VALUE`
+(repeatable) sets a variable for the hooks and the make targets they run; the
+kit's `rltool hooks install` sets RLTOOL that way, for the game repositories.
 
 `markdown` formats the Markdown files Git tracks (third_party trees aside) with
 mdformat and its mdformat-gfm plugin, as the repository's .mdformat.toml says;
 --check only reports. Without mdformat it says in capitals that nothing was
 checked. A Makefile can run this file by its path, without PYTHONPATH.
 
-    python -m retrolarium_core.hooks install [REPO] [--force]
+    python -m retrolarium_core.hooks install [REPO] [--force] [--env NAME=VALUE]...
     python -m retrolarium_core.hooks uninstall [REPO]
     python -m retrolarium_core.hooks markdown [REPO] [--check]
 """
@@ -53,21 +55,26 @@ def hooks_folder(repo: Path) -> Path:
     return folder if folder.is_absolute() else (repo / folder).resolve()
 
 
-def script(hook: str) -> str:
+def _quote(value: str) -> str:
+    return "'" + value.replace("'", "'\\''") + "'"
+
+
+def script(hook: str, environment: dict[str, str] | None = None) -> str:
     python = Path(sys.executable).as_posix()
     core = _CORE.as_posix()
     separator = ";" if os.name == "nt" else ":"
+    exports = "".join(f"export {name}={_quote(value)}\n" for name, value in sorted((environment or {}).items()))
     return f"""#!/bin/sh
 {MARKER}: reinstall with python -m retrolarium_core.hooks install
 if [ ! -x "{python}" ] && [ ! -f "{python}" ]; then
     echo "RETROLARIUM HOOKS NOT RUN: {python} is gone; reinstall them" >&2
     exit 0
 fi
-PYTHONPATH="{core}${{PYTHONPATH:+{separator}$PYTHONPATH}}" exec "{python}" -m retrolarium_core.hooks run {hook} "$@"
+{exports}PYTHONPATH="{core}${{PYTHONPATH:+{separator}$PYTHONPATH}}" exec "{python}" -m retrolarium_core.hooks run {hook} "$@"
 """
 
 
-def install(repo: Path, force: bool = False) -> list[Path]:
+def install(repo: Path, force: bool = False, environment: dict[str, str] | None = None) -> list[Path]:
     folder = hooks_folder(repo)
     folder.mkdir(parents=True, exist_ok=True)
     written = []
@@ -75,7 +82,7 @@ def install(repo: Path, force: bool = False) -> list[Path]:
         path = folder / hook
         if path.exists() and MARKER not in path.read_text(encoding="utf-8", errors="replace") and not force:
             raise SystemExit(f"{path} is not ours; move it away or pass --force")
-        path.write_text(script(hook), encoding="utf-8", newline="\n")
+        path.write_text(script(hook, environment), encoding="utf-8", newline="\n")
         path.chmod(0o755)
         written.append(path)
     return written
@@ -92,12 +99,23 @@ def uninstall(repo: Path) -> list[Path]:
 
 
 def make_targets(repo: Path) -> list[str]:
-    """The targets of MAKE_TARGETS the repository's Makefile defines."""
+    """The targets of MAKE_TARGETS the repository's Makefile defines, its
+    included files counted: make itself is asked (a dry run), or without make
+    the Makefile is read."""
     makefile = repo / "Makefile"
     if not makefile.is_file():
         return []
-    text = makefile.read_text(encoding="utf-8", errors="replace")
-    return [target for target in MAKE_TARGETS if re.search(rf"^{re.escape(target)}\s*:", text, re.MULTILINE)]
+    make = shutil.which("make")
+    if make is None:
+        text = makefile.read_text(encoding="utf-8", errors="replace")
+        return [target for target in MAKE_TARGETS if re.search(rf"^{re.escape(target)}\s*:", text, re.MULTILINE)]
+    found = []
+    for target in MAKE_TARGETS:
+        result = subprocess.run([make, "-n", "-s", target], cwd=repo, capture_output=True, text=True,
+                                errors="replace")
+        if f"No rule to make target '{target}'." not in result.stderr:
+            found.append(target)
+    return found
 
 
 def markdown(repo: Path, check: bool) -> int:
@@ -148,6 +166,8 @@ def main(argv: list[str] | None = None) -> int:
     installing = commands.add_parser("install")
     installing.add_argument("repo", nargs="?", type=Path, default=Path("."))
     installing.add_argument("--force", action="store_true", help="replace hooks that are not ours")
+    installing.add_argument("--env", action="append", default=[], metavar="NAME=VALUE",
+                            help="a variable for the hooks and their make targets (repeatable)")
     commands.add_parser("uninstall").add_argument("repo", nargs="?", type=Path, default=Path("."))
     formatting = commands.add_parser("markdown")
     formatting.add_argument("repo", nargs="?", type=Path, default=Path("."))
@@ -163,7 +183,8 @@ def main(argv: list[str] | None = None) -> int:
         return markdown(args.repo.resolve(), args.check)
     repo = Path(_git(args.repo, "rev-parse", "--show-toplevel"))
     if args.command == "install":
-        for path in install(repo, args.force):
+        environment = dict(item.split("=", 1) for item in args.env)
+        for path in install(repo, args.force, environment):
             print(f"installed {path}")
         if stop_words.locate(repo) is None:
             print(stop_words.not_performed(repo), file=sys.stderr)

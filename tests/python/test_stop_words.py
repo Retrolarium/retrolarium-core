@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -186,6 +187,19 @@ class HookTests(unittest.TestCase):
             self.assertEqual([], hooks.make_targets(root))
             (root / "Makefile").write_text("lint: x\n\nformat-check:\n\techo\n", encoding="utf-8")
             self.assertEqual(["lint", "format-check"], hooks.make_targets(root))
+
+    @unittest.skipUnless(shutil.which("make"), "make runs the lint target")
+    def test_the_installed_environment_reaches_make(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = repository(directory)
+            env = {stop_words.ENVIRONMENT: str(Path(directory) / "missing")}
+            (root / "Makefile").write_text("lint:\n\t@test \"$$HOOK_PROBE\" = \"it's set\"\n", encoding="utf-8")
+            git(root, "add", "Makefile")
+            hooks.install(root)
+            self.assertNotEqual(0, git(root, "commit", "-q", "-m", "without", env=env).returncode)
+            hooks.install(root, environment={"HOOK_PROBE": "it's set"})
+            accepted = git(root, "commit", "-q", "-m", "with", env=env)
+            self.assertEqual(0, accepted.returncode, accepted.stderr)
 
 
 class ThisRepositoryTests(unittest.TestCase):
