@@ -154,6 +154,17 @@ int main(int argc, char *argv[])
         }
     }
 
+    // Broken streams are refused: never decoded outside the code table,
+    // for ever, or past the plane they could fill.
+    for (const char *broken : {"0000000000000000", "2000000000008000000001fc0000"}) {
+        try {
+            (void)retrolarium::core::enigmaDecompress(fromHex(broken));
+            std::cerr << "FAIL: the broken stream " << broken << " decoded\n";
+            ++failures;
+        } catch (const retrolarium::core::EnigmaError &) {
+        }
+    }
+
     if (cases == 0) {
         std::cerr << "corpus carried no cases\n";
         return 2;

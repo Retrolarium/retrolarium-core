@@ -1,6 +1,7 @@
 #include <retrolarium/core/megadrive/nemesis.hpp>
 
 #include <map>
+#include <string>
 #include <utility>
 
 namespace retrolarium::core {
@@ -116,6 +117,13 @@ std::vector<std::uint8_t> nemesisCompress(
     const std::vector<std::uint8_t> &plain, const std::vector<std::uint8_t> &reference)
 {
     const ReferenceHeader header = parseReference(reference);
+    // The reference's header (tile count included) is copied: the data must
+    // be that many tiles, or the stream would decode to something else.
+    const std::size_t tiles = static_cast<std::size_t>(((reference[0] << 8) | reference[1]) & 0x7FFF);
+    if (plain.size() != tiles * 32) {
+        throw NemesisError("Nemesis data is " + std::to_string(plain.size()) + " bytes; the reference holds "
+            + std::to_string(tiles) + " tiles of 32");
+    }
     const std::vector<int> nybbles = toNybbles(plain, header.xorMode);
     const std::size_t total = nybbles.size();
 

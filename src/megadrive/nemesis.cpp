@@ -45,15 +45,22 @@ private:
 
     void refill()
     {
-        // Past the end the oracle shifts in nothing rather than failing, so a
-        // truncated stream decodes the same way on both sides.
+        // Past the end the oracle shifts in zeroes, so a stream that stops a
+        // little short decodes the same way on both sides; one that runs on
+        // well past its end is broken and never ends.
         const std::uint32_t next = position_ < data_.size() ? data_[position_] : 0u;
         if (position_ < data_.size()) {
             ++position_;
+        } else if (++pastEnd_ > kPastEndBytes) {
+            throw NemesisError("Nemesis stream ended before its tiles");
         }
         buffer_ = ((buffer_ << 8) | next) & 0xFFFFFFu;
         available_ += 8;
     }
+
+    // Zero bytes read past the end before the stream counts as truncated.
+    static constexpr int kPastEndBytes = 4;
+    int pastEnd_ = 0;
 
     const std::vector<std::uint8_t> &data_;
     std::size_t position_ = 0;
@@ -107,6 +114,11 @@ std::vector<std::uint8_t> nemesisDecompress(const std::vector<std::uint8_t> &dat
                 codeLength = 8;
             }
             const int codeByte = require(position++);
+            // A code of codeLength bits: one longer than the table or past
+            // it would write outside the table.
+            if (codeLength > 8 || codeByte >= (1 << codeLength)) {
+                throw NemesisError("Nemesis code table entry is out of range");
+            }
 
             if (codeLength < 8) {
                 const int base = codeByte << (8 - codeLength);

@@ -43,19 +43,28 @@ private:
 
     void refill()
     {
+        // A stream that runs on well past its end never reaches its
+        // terminator: refused, not decoded for ever.
         const std::uint32_t next = position_ < data_.size() ? data_[position_] : 0u;
         if (position_ < data_.size()) {
             ++position_;
+        } else if (++pastEnd_ > kPastEndBytes) {
+            throw EnigmaError("Enigma stream ended before its terminator");
         }
         buffer_ = ((buffer_ << 8) | next) & 0xFFFFFFu;
         available_ += 8;
     }
+
+    static constexpr int kPastEndBytes = 4;
+    int pastEnd_ = 0;
 
     const std::vector<std::uint8_t> &data_;
     std::size_t position_ = 0;
     std::uint32_t buffer_ = 0;
     int available_ = 0;
 };
+
+constexpr std::size_t kMaxOutput = 0x10000;
 
 void emit(std::vector<std::uint8_t> &output, int tile)
 {
@@ -79,6 +88,11 @@ std::vector<std::uint8_t> enigmaDecompress(
     int bitsCount = require(0);
     if (bitsCount >= 0x80) {
         bitsCount -= 0x100;
+    }
+    // Tile words are 16 bits: a wider field is not a tile map (and would
+    // shift past the reader's mask).
+    if (bitsCount > 16 || bitsCount < -16) {
+        throw EnigmaError("Enigma tile field is wider than 16 bits");
     }
     int flagsByte = require(1);
     if (flagsByte >= 0x80) {
@@ -119,6 +133,10 @@ std::vector<std::uint8_t> enigmaDecompress(
     std::vector<std::uint8_t> output;
 
     while (true) {
+        // A plane fills 64 KB of video memory at most.
+        if (output.size() > kMaxOutput) {
+            throw EnigmaError("Enigma stream decodes past 64 KB without its terminator");
+        }
         // Codes are seven bits, except that a leading zero marks a six-bit one;
         // the engine reads seven and hands the spare bit back.
         int code = reader.read(7);
