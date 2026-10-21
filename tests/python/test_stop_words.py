@@ -71,6 +71,11 @@ class MatchingTests(unittest.TestCase):
         self.assertEqual(["example_corp"], WORDS.find_bytes("at example_corp".encode("utf-16")))
         self.assertEqual(["примерн"], WORDS.find_bytes("Примерная".encode("cp1251")))
 
+    def test_ascii_inside_a_binary_is_read(self) -> None:
+        # 0x98 has no cp1251 character: the blob decodes as none of the texts.
+        blob = b"\x89PNG\x00\x98 C:/Users/Example_Corp/build/game.pdb \x98\x00"
+        self.assertEqual(["example_corp"], WORDS.find_bytes(blob))
+
 
 class ListTests(unittest.TestCase):
     def test_the_list_is_read_by_sections(self) -> None:
@@ -150,6 +155,16 @@ class RepositoryTests(unittest.TestCase):
             zero = "0" * 40
             problems, commits, _ = stop_words.check_push(root, "origin", f"refs/heads/main {second} x {zero}\n", WORDS)
             self.assertEqual((2, 2), (len(problems), commits))
+
+    def test_a_second_name_of_the_same_blob_is_checked(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = repository(directory)
+            (root / "a.txt").write_text("same bytes\n", encoding="utf-8")
+            (root / "examplecorp.txt").write_text("same bytes\n", encoding="utf-8")
+            git(root, "add", ".")
+            git(root, "commit", "-q", "-m", "two names")
+            problems, _, _ = stop_words.check_history(root, WORDS)
+            self.assertTrue(any("examplecorp.txt" in problem for problem in problems), problems)
 
 
 class HookTests(unittest.TestCase):

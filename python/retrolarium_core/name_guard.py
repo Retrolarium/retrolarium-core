@@ -64,6 +64,9 @@ TEXT_SUFFIXES = frozenset({
     ".c", ".cc", ".cpp", ".h", ".hpp", ".py", ".lua", ".js", ".ts", ".json", ".toml",
     ".md", ".txt", ".cmake", ".ps1", ".sh", ".yml", ".yaml", ".html", ".css", ".qml",
     ".ui", ".xml", ".cfg", ".ini", ".asm", ".inc", ".s", ".rlj", ".tsv",
+    # The disassembler's Ghidra scripts, patches and 68000 sources; the
+    # Studio's resource scripts, desktop entry, manifest and icons.
+    ".java", ".patch", ".diff", ".68k", ".rc", ".in", ".qrc", ".desktop", ".manifest", ".svg",
 })
 TEXT_NAMES = frozenset({"CMakeLists.txt", "Makefile", "Dockerfile", ".gitignore", ".gitattributes"})
 TABLE_SUFFIXES = frozenset({".c", ".cc", ".cpp", ".h", ".hpp", ".py", ".lua", ".js", ".json"})
@@ -166,6 +169,9 @@ def _read(root: Path, relative: str) -> str | None:
         data = (root / relative).read_bytes()
     except OSError:
         return None
+    # A UTF-16 text (a Windows resource script) has NULs but its BOM says so.
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return data.decode("utf-16", errors="replace")
     if b"\0" in data[:8192]:
         return None
     return data.decode("utf-8", errors="replace")

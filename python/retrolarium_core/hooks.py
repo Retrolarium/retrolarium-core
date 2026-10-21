@@ -110,10 +110,13 @@ def make_targets(repo: Path) -> list[str]:
         text = makefile.read_text(encoding="utf-8", errors="replace")
         return [target for target in MAKE_TARGETS if re.search(rf"^{re.escape(target)}\s*:", text, re.MULTILINE)]
     found = []
+    # make's messages in the C locale (a translated make words them
+    # otherwise), and any quoting: GNU make 3.81 writes `target'.
+    environment = dict(os.environ, LC_ALL="C", LANGUAGE="C")
     for target in MAKE_TARGETS:
         result = subprocess.run([make, "-n", "-s", target], cwd=repo, capture_output=True, text=True,
-                                errors="replace")
-        if f"No rule to make target '{target}'." not in result.stderr:
+                                errors="replace", env=environment)
+        if not re.search(rf"No rule to make target .{re.escape(target)}'", result.stderr):
             found.append(target)
     return found
 

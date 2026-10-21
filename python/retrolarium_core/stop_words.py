@@ -45,6 +45,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import threading
 
 LIST_NAME = ".stopwords"
 ENVIRONMENT = "RETROLARIUM_STOPWORDS"
@@ -104,6 +105,9 @@ class StopWords:
             except UnicodeDecodeError:
                 continue
             found.update(self.find(text))
+        # A binary (an executable with a path in it, an image's metadata)
+        # decodes as none of those; byte for byte it still shows its ASCII.
+        found.update(self.find(data.decode("latin-1")))
         return sorted(found)
 
 
@@ -142,21 +146,50 @@ def _git(repo: Path, *args: str, data: bytes | None = None) -> bytes:
 
 
 def _batch(repo: Path, names: list[str]):
-    """(name, kind, body) for each object name, through git cat-file."""
+    """(name, kind, body) for each object name, through git cat-file, one
+    object in memory at a time."""
     if not names:
         return
-    out = _git(repo, "cat-file", "--batch", data="\n".join(names).encode("utf-8", "surrogateescape") + b"\n")
+    process = subprocess.Popen(["git", "-C", str(repo), "cat-file", "--batch"],
+                               stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+
+    def feed() -> None:
+        try:
+            process.stdin.write("\n".join(names).encode("utf-8", "surrogateescape") + b"\n")
+        except OSError:
+            pass
+        finally:
+            process.stdin.close()
+
+    # Written from a thread: git answers while it reads, and a full pipe
+    # either way would stop both.
+    writer = threading.Thread(target=feed, daemon=True)
+    writer.start()
+    try:
+        for name in names:
+            header = process.stdout.readline().decode().rstrip("\n")
+            if not header or header.endswith(" missing"):
+                continue
+            _sha, kind, size = header.split()
+            body = process.stdout.read(int(size))
+            process.stdout.read(1)
+            yield name, kind, body
+    finally:
+        process.stdout.close()
+        writer.join()
+        process.wait()
+
+
+def _tree_names(body: bytes) -> list[tuple[str, str]]:
+    """(name, object) of each entry of a tree object."""
+    entries = []
     position = 0
-    for name in names:
-        end = out.index(b"\n", position)
-        header = out[position:end].decode()
-        if header.endswith(" missing"):
-            position = end + 1
-            continue
-        _sha, kind, size = header.split()
-        body = out[end + 1:end + 1 + int(size)]
-        position = end + 1 + int(size) + 1
-        yield name, kind, body
+    while position < len(body):
+        space = body.index(b" ", position)
+        nul = body.index(b"\0", space)
+        entries.append((body[space + 1:nul].decode("utf-8", "surrogateescape"), body[nul + 1:nul + 21].hex()))
+        position = nul + 21
+    return entries
 
 
 def check_tree(root: Path, words: StopWords) -> list[str]:
@@ -229,8 +262,17 @@ def check_objects(repo: Path, revisions: list[str], words: StopWords) -> tuple[l
         if found:
             problems.append(f"path {path}: {', '.join(found)}")
     commits = blobs = 0
+    checked = {name for names in paths.values() for path in names for name in path.split("/")}
     for sha, kind, body in _batch(repo, list(paths)):
         if kind == "tree":
+            # rev-list names each object once: a blob under two names (a
+            # copy, a rename) shows the second only in its tree.
+            for name, entry in _tree_names(body):
+                if name not in checked:
+                    checked.add(name)
+                    found = words.find(name)
+                    if found:
+                        problems.append(f"path {name} (object {entry[:10]}): {', '.join(found)}")
             continue
         commits += kind == "commit"
         blobs += kind == "blob"

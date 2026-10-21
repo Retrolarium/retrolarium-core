@@ -6,3 +6,14 @@
 *.py            text eol=lf
 *.cmake         text eol=lf
 CMakeLists.txt  text eol=lf
+# Fixtures are compared byte for byte (a CRLF checkout would fail the
+# parity tests): LF too.
+*.json          text eol=lf
+*.txt           text eol=lf
+*.rlj           text eol=lf
+*.toml          text eol=lf
+*.asm           text eol=lf
+*.sha256        text eol=lf
+Makefile        text eol=lf
+*.bin           binary
+*.mid           binary
