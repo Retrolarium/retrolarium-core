@@ -1,18 +1,20 @@
 #include <retrolarium/core/megadrive/enigma.hpp>
 
 #include <algorithm>
+#include <cstdint>
 #include <map>
+#include <unordered_map>
 #include <utility>
 
 namespace retrolarium::core {
 namespace {
 
-// One emitted command: its mode, its repeat field, and any tile words written
-// inline after it.
+// One emitted command: its mode and its repeat field. The tile words it
+// writes inline (modes 4 to 6 one, mode 7 a literal run) are the map's own
+// from the command's position, read when it is written.
 struct Command final {
     int mode = 0;
     int repeat = 0;
-    std::vector<int> operands;
 };
 
 // A memoised decision: the cheapest command to emit at a position, and the
@@ -50,6 +52,15 @@ int runLength(const std::vector<int> &values, std::size_t position, int step)
     return length;
 }
 
+// A command the search may emit at a state: its own cost and the state it
+// leads to, whose best cost adds to it.
+struct Candidate final {
+    int cost = 0;
+    Command command;
+    std::size_t nextPosition = 0;
+    int nextIncTile = 0;
+};
+
 class Solver final {
 public:
     Solver(const std::vector<int> &values, int bitsCount)
@@ -58,37 +69,76 @@ public:
     {
     }
 
-    // std::map rather than a hash map: nodes keep their address, so a
-    // reference handed to a caller survives the recursion's own inserts.
+    // Elements of an unordered_map keep their address through a rehash, so
+    // a reference handed to a caller survives later inserts.
+    //
+    // The search is the oracle's recursion walked on an explicit stack: a
+    // state's candidates are listed in the oracle's order, each waits for the
+    // state it leads to, and ties keep the first. A map as long as a plane
+    // (thousands of words) would otherwise nest that many native calls.
     const Decision &solve(std::size_t position, int incTile)
     {
-        const std::uint64_t key = (static_cast<std::uint64_t>(position) << 17)
-            | static_cast<std::uint64_t>(incTile & 0xFFFF);
-        if (const auto found = memo_.find(key); found != memo_.end()) {
+        if (const auto found = memo_.find(key(position, incTile)); found != memo_.end()) {
             return found->second;
         }
-
-        if (position == values_.size()) {
-            Decision terminal;
-            terminal.cost = 7;
-            terminal.command = Command {7, 15, {}};
-            terminal.terminal = true;
-            return memo_.emplace(key, std::move(terminal)).first->second;
+        std::vector<Frame> stack;
+        stack.push_back(open(position, incTile));
+        while (!stack.empty()) {
+            Frame &frame = stack.back();
+            if (frame.next < frame.candidates.size()) {
+                const Candidate &candidate = frame.candidates[frame.next];
+                const auto child = memo_.find(key(candidate.nextPosition, candidate.nextIncTile));
+                if (child == memo_.end()) {
+                    // Opened after the reference is used: push_back may move frames.
+                    Frame opened = open(candidate.nextPosition, candidate.nextIncTile);
+                    stack.push_back(std::move(opened));
+                    continue;
+                }
+                const int cost = candidate.cost + child->second.cost;
+                if (!frame.haveBest || cost < frame.best.cost) {
+                    frame.best = Decision {cost, candidate.command, candidate.nextPosition,
+                        candidate.nextIncTile, false};
+                    frame.haveBest = true;
+                }
+                ++frame.next;
+                continue;
+            }
+            memo_.emplace(key(frame.position, frame.incTile), std::move(frame.best));
+            stack.pop_back();
         }
+        return memo_.find(key(position, incTile))->second;
+    }
 
+
+private:
+    struct Frame final {
+        std::size_t position = 0;
+        int incTile = 0;
+        std::vector<Candidate> candidates;
+        std::size_t next = 0;
         Decision best;
         bool haveBest = false;
-        // Candidates are considered in the oracle's order and ties keep the
-        // first, which is what makes the two encoders agree byte for byte.
-        const auto consider = [&](int cost, Command command, std::size_t next,
-                                 int nextIncTile) {
-            if (haveBest && cost >= best.cost) {
-                return;
-            }
-            best = Decision {cost, std::move(command), next, nextIncTile, false};
-            haveBest = true;
-        };
+    };
 
+    static std::uint64_t key(std::size_t position, int incTile)
+    {
+        return (static_cast<std::uint64_t>(position) << 17) | static_cast<std::uint64_t>(incTile & 0xFFFF);
+    }
+
+    // A state's candidates in the oracle's order; the end of the map is the
+    // terminator alone, decided at once.
+    Frame open(std::size_t position, int incTile)
+    {
+        Frame frame;
+        frame.position = position;
+        frame.incTile = incTile;
+        if (position == values_.size()) {
+            frame.best.cost = 7;
+            frame.best.command = Command {7, 15};
+            frame.best.terminal = true;
+            frame.haveBest = true;
+            return frame;
+        }
         if (values_[position] == incTile) {
             int length = 0;
             while (length < 16
@@ -98,45 +148,32 @@ public:
                 ++length;
             }
             for (int count = 1; count <= length; ++count) {
-                const auto next = position + static_cast<std::size_t>(count);
-                const int nextInc = (incTile + count) & 0xFFFF;
-                consider(6 + solve(next, nextInc).cost, Command {0, count - 1, {}},
-                    next, nextInc);
+                frame.candidates.push_back(Candidate {6, Command {0, count - 1},
+                    position + static_cast<std::size_t>(count), (incTile + count) & 0xFFFF});
             }
         }
-
         static constexpr int kModes[3] {4, 5, 6};
         static constexpr int kSteps[3] {0, 1, -1};
         for (int index = 0; index < 3; ++index) {
             const int maximum = runLength(values_, position, kSteps[index]);
             for (int count = 1; count <= maximum; ++count) {
-                const auto next = position + static_cast<std::size_t>(count);
-                consider(7 + bitsCount_ + solve(next, incTile).cost,
-                    Command {kModes[index], count - 1, {values_[position]}},
-                    next, incTile);
+                frame.candidates.push_back(Candidate {7 + bitsCount_,
+                    Command {kModes[index], count - 1},
+                    position + static_cast<std::size_t>(count), incTile});
             }
         }
-
         const int literalLimit =
             static_cast<int>(std::min<std::size_t>(15, values_.size() - position));
         for (int count = 1; count <= literalLimit; ++count) {
-            const auto next = position + static_cast<std::size_t>(count);
-            std::vector<int> literal(
-                values_.begin() + static_cast<std::ptrdiff_t>(position),
-                values_.begin() + static_cast<std::ptrdiff_t>(next));
-            consider(7 + count * bitsCount_ + solve(next, incTile).cost,
-                Command {7, count - 1, std::move(literal)}, next, incTile);
+            frame.candidates.push_back(Candidate {7 + count * bitsCount_, Command {7, count - 1},
+                position + static_cast<std::size_t>(count), incTile});
         }
-
-        return memo_.emplace(key, std::move(best)).first->second;
+        return frame;
     }
 
-    void reset() { memo_.clear(); }
-
-private:
     const std::vector<int> &values_;
     int bitsCount_ = 0;
-    std::map<std::uint64_t, Decision> memo_;
+    std::unordered_map<std::uint64_t, Decision> memo_;
 };
 
 class BitWriter final {
@@ -204,12 +241,15 @@ std::vector<std::uint8_t> enigmaCompress(const std::vector<std::uint8_t> &data)
     std::sort(distinct.begin(), distinct.end());
     distinct.erase(std::unique(distinct.begin(), distinct.end()), distinct.end());
 
+    // One memo for every starting tile: the best command at a state (a
+    // position and the incrementing tile there) is the same whichever tile
+    // the search started from, so a state solved for one start serves the
+    // others. The choices, and so the output, are unchanged.
     Solver solver(values, bitsCount);
     int bestCost = 0;
     int bestIncTile = distinct.front();
     bool haveBest = false;
     for (const int candidate : distinct) {
-        solver.reset();
         const int cost = solver.solve(0, candidate).cost;
         if (!haveBest || cost < bestCost) {
             bestCost = cost;
@@ -218,7 +258,6 @@ std::vector<std::uint8_t> enigmaCompress(const std::vector<std::uint8_t> &data)
         }
     }
 
-    solver.reset();
     BitWriter writer;
     std::size_t position = 0;
     int incTile = bestIncTile;
@@ -226,8 +265,14 @@ std::vector<std::uint8_t> enigmaCompress(const std::vector<std::uint8_t> &data)
         const Decision decision = solver.solve(position, incTile);
         writer.write((decision.command.mode << 4) | decision.command.repeat,
             decision.command.mode <= 1 ? 6 : 7);
-        for (const int operand : decision.command.operands) {
-            writer.write(operand, bitsCount);
+        // Modes 4 to 6 write the tile at the position, a literal (mode 7
+        // short of the terminator) the run of tiles from it.
+        const int mode = decision.command.mode;
+        const int operands = decision.terminal ? 0
+            : mode >= 4 && mode <= 6 ? 1
+            : mode == 7 ? decision.command.repeat + 1 : 0;
+        for (int index = 0; index < operands; ++index) {
+            writer.write(values[position + static_cast<std::size_t>(index)], bitsCount);
         }
         if (decision.terminal) {
             break;
