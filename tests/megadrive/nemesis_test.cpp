@@ -1,9 +1,8 @@
-// Cross-language parity for the Nemesis decoder.
+// The Nemesis codec against its frozen corpus.
 //
-// retrolarium_core owns the implementation Retrolarium and its Kit both use;
-// python/retrolarium_core/oracles/nemesis.py is kept as the independent reference the
-// port is checked against. The corpus comes from
-// tools/generate-nemesis-golden.py.
+// retrolarium_core holds the only implementation, which the kit runs as
+// rlcore. The corpus was written by an independent Python port, since
+// removed; it stays the reference the C++ must match byte for byte.
 
 #include <retrolarium/core/megadrive/nemesis.hpp>
 

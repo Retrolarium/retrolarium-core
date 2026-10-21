@@ -1,1 +1,0 @@
-; fixture-only workspace document

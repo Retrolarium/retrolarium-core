@@ -1,8 +1,8 @@
-// Cross-language parity for the Enigma decoder.
+// The Enigma codec against its frozen corpus.
 //
-// retrolarium_core owns the implementation; python/retrolarium_core/oracles/enigma.py
-// is the independent reference it is checked against. The corpus comes from
-// tools/generate-enigma-golden.py.
+// retrolarium_core holds the only implementation, which the kit runs as
+// rlcore. The corpus was written by an independent Python port, since
+// removed; it stays the reference the C++ must match byte for byte.
 
 #include <retrolarium/core/megadrive/enigma.hpp>
 

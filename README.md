@@ -1,8 +1,11 @@
 # Retrolarium Core
 
-The part of Retrolarium that Studio, Kit and Disassembler share: containers,
-compression and tile primitives. The core has two halves: a C++ library with the
-`rlcore` tool, and the Python layer `python/retrolarium_core`.
+The part of Retrolarium that Studio, Kit and Disassembler share. The core has
+two halves: a C++ library with the `rlcore` tool, which holds the Mega Drive
+compressions (Nemesis, Enigma), and the Python layer `python/retrolarium_core`,
+which holds the containers, the manifest contracts and the repository guards.
+A format is implemented once: in C++ where the Studio needs it too, otherwise in
+Python.
 
 ```text
                  ┌── static linking ────────────> retrolarium-studio (Qt)
@@ -51,53 +54,14 @@ python -m unittest discover -s tests/python
 ```
 
 Retrolarium Studio adds the core with `add_subdirectory` from a
-`retrolarium-core` checkout beside it; the studio's test run
-(`tools/test-win.ps1`) covers the core as part of the studio.
-
-## Cross-language parity
-
-While a format exists in both Python and C++, a difference between them must be
-caught by a test, not found in a built ROM. The scheme:
-
-- the Python implementation (`retrolarium_core` or a kit codec) stays the
-  **oracle**;
-- `tools/generate-ines-golden.py` writes a corpus of expected results;
-- `tests/nes/ines_test.cpp` checks the C++ against it;
-- `tools/generate-ines-golden.py --check` fails when the corpus is behind the
-  oracle.
-
-```sh
-python tools/generate-ines-golden.py tests/fixtures/nes/ines_golden.txt --check
-```
-
-The corpus holds no ROM: each case is described by a header and a seed, and both
-sides materialise the body with the same LCG. A difference in the body shows up
-as a SHA-256 mismatch.
-
-Every format ported after iNES follows the same pattern.
+`retrolarium-core` checkout beside it, without the core's tests: run them here.
 
 ## Contents
 
-| Module            | Purpose                                                        |
-| ----------------- | -------------------------------------------------------------- |
-| `sha256`, `sha1`  | digests without Qt, checked against published NIST vectors     |
-| `ines`            | the iNES container                                             |
-| `fds`             | a Famicom Disk System side: files and payload ranges           |
-| `nemesis`         | unpacking and repacking Mega Drive tile streams                |
-| `enigma`          | unpacking and packing Mega Drive tile maps                     |
-| `nes_tiles`       | 2bpp CHR and slicing 2x2 metatile records                      |
-| `nes_palette`     | palette tables, replicated entries included                    |
-| `nes_nametable`   | the tile grid and attribute bytes                              |
-| `nes_ppu_packets` | the PPU display-list grammar with trailing padding             |
-| `nes_text`        | fixed-width text fields                                        |
-| `midi`            | reading Standard MIDI files for music import                   |
-| `value`           | a JSON-like value for codec parameters                         |
-| `game_profile`    | the game profile loader (error texts match the kit's)          |
-| `resource_source` | the bytes a profile resource occupies in an image              |
-| `build_plan`      | a set of replacements with their expected bytes, applied to an |
-|                   | image                                                          |
-| `studio_project`  | the `.rlj` Studio project contract (error texts match the      |
-|                   | kit's)                                                         |
+| Module    | Purpose                                         |
+| --------- | ----------------------------------------------- |
+| `nemesis` | unpacking and repacking Mega Drive tile streams |
+| `enigma`  | unpacking and packing Mega Drive tile maps      |
 
 Repacking Nemesis needs a reference stream: the code table sits inside the
 stream itself, so the encoder reuses the original's header and table instead of
@@ -105,22 +69,20 @@ inventing its own. That removes the one truly lossy decision in the format.
 Unchanged content stays byte-identical through the pair: the caller compares the
 unpacked content and returns the original bytes when it did not change.
 
+Nemesis and Enigma exist only in C++, which the kit runs as `rlcore`. Their
+corpora (`tests/fixtures/megadrive/*_golden.txt`) were written by Python
+implementations ported independently from the Flicky disassembly, removed once
+the C++ became the only one; they stay the frozen reference the C++ must match.
+
 The Enigma encoder optimises: it searches for the cheapest sequence of commands.
-It matches the oracle because the order in which candidates are tried and the
+It matches the corpus because the order in which candidates are tried and the
 rule "on a tie the first wins" are fixed. They must not change: the stream would
 stay valid but would no longer match.
 
 There are no game codecs here, and there will be none: `smb.*`, `pacman.*` and
-`castle-excellent.*` live in a separate layer. The line is whether something
-means the same in every game of the platform. Slicing metatile records, for
-example, is a platform matter and lives here, while the encoding of an SMB
-metatile index (`(id >> 6) & 3`, quadrant order `{0,2,1,3}`) belongs to the game
-and does not.
-
-The Mega Drive and SNES containers exist only in the Python layer so far
-(below); porting them to C++ is the next step. Kosinski and Saxman wait for real
-Sonic data or an independent implementation: without an independent check a
-codec would only be tested against itself.
+`castle-excellent.*` live in the kit. Kosinski and Saxman wait for real Sonic
+data or an independent implementation: without an independent check a codec
+would only be tested against itself.
 
 ## Python layer
 
@@ -136,7 +98,6 @@ without any game semantics:
 | `contracts` | the contract of a disassembled project's manifest (`schemas/`)          |
 | `tool`      | finding and running `rlcore`                                            |
 | `host`      | stable names for the host platform (`windows-x86_64`)                   |
-| `oracles`   | reference Enigma and Nemesis implementations the C++ is checked against |
 
 The package installs as `retrolarium-core` (`pyproject.toml` at the root). The
 kit and the disassembler find it on their own when run from source: in a

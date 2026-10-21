@@ -1,3 +1,2 @@
 # Files that may hold a literal run of 24 numbers or more, and why
 # (python -m retrolarium_core.name_guard tables).
-src/hash/sha256.cpp  # the SHA-256 round constants

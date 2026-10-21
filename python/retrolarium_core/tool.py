@@ -1,7 +1,8 @@
 """Locate and drive ``rlcore``, the command-line face of retrolarium_core.
 
-Container and compression codecs live in the C++ core, because the Kit and the
-Qt application both need them and a format must not have two implementations.
+The Mega Drive compressions (Nemesis, Enigma) live in the C++ core, because the
+Kit and the Qt application both need them and a format must not have two
+implementations.
 The Kit reaches that code the same way it reaches ca65: by running a pinned
 binary, not by linking or importing anything. That keeps this a pure Python
 package with no compiler on the install path.
@@ -21,6 +22,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import tempfile
 from typing import Sequence
 
 from retrolarium_core.host import normalize_host
@@ -127,10 +129,6 @@ def version() -> str:
     return completed.stdout.strip()
 
 
-def inspect_ines(image: Path) -> dict[str, object]:
-    return run(["ines", "inspect", str(image)])
-
-
 def nemesis_decompress(source: Path, output: Path) -> dict[str, object]:
     return run(["nemesis", "decompress", str(source), str(output)])
 
@@ -154,3 +152,37 @@ def enigma_decompress(source: Path, output: Path, base_tile: int = 0) -> dict[st
 
 def enigma_compress(plain: Path, output: Path) -> dict[str, object]:
     return run(["enigma", "compress", str(plain), str(output)])
+
+
+# The same codecs on bytes, for callers that hold the data in memory (the
+# kit's Flicky graphics): rlcore reads and writes files in a scratch folder.
+
+def _through_files(command: str, inputs: Sequence[bytes], extra: Sequence[str] = ()) -> bytes:
+    with tempfile.TemporaryDirectory(prefix="rlcore-") as directory:
+        folder = Path(directory)
+        paths = []
+        for index, data in enumerate(inputs):
+            path = folder / f"input{index}.bin"
+            path.write_bytes(data)
+            paths.append(str(path))
+        output = folder / "output.bin"
+        family, verb = command.split()
+        run([family, verb, *paths, str(output), *extra])
+        return output.read_bytes()
+
+
+def nemesis_decode(data: bytes) -> bytes:
+    return _through_files("nemesis decompress", [data])
+
+
+def nemesis_encode(plain: bytes, reference: bytes) -> bytes:
+    """Re-encode `plain` with the code table of `reference` (the same tile count)."""
+    return _through_files("nemesis compress", [plain, reference])
+
+
+def enigma_decode(data: bytes, base_tile: int = 0) -> bytes:
+    return _through_files("enigma decompress", [data], [str(base_tile)] if base_tile else [])
+
+
+def enigma_encode(plain: bytes) -> bytes:
+    return _through_files("enigma compress", [plain])

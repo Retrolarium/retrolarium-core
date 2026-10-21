@@ -5,9 +5,7 @@
 // library, where both consumers and the tests reach it.
 
 #include <retrolarium/core/megadrive/enigma.hpp>
-#include <retrolarium/core/nes/ines.hpp>
 #include <retrolarium/core/megadrive/nemesis.hpp>
-#include <retrolarium/core/hash/sha256.hpp>
 
 #include <cstdint>
 #include <fstream>
@@ -29,8 +27,6 @@ void printUsage(std::ostream &out)
     out << "usage: rlcore <command> [arguments]\n"
            "\n"
            "commands:\n"
-           "  ines inspect <image.nes>\n"
-           "      report container layout as JSON\n"
            "  nemesis decompress <in.nem> <out.bin>\n"
            "  nemesis compress <plain.bin> <reference.nem> <out.nem>\n"
            "      re-encode using the reference's own code table\n"
@@ -87,33 +83,6 @@ std::string jsonEscape(const std::string &value)
         }
     }
     return out;
-}
-
-int inesInspect(const std::string &path)
-{
-    const auto image = retrolarium::core::loadInes(path);
-    std::cout << "{\n";
-    std::cout << "  \"schema\": \"retrolarium.ines-inspection\",\n";
-    std::cout << "  \"schema_version\": 1,\n";
-    std::cout << "  \"source\": \"" << jsonEscape(path) << "\",\n";
-    std::cout << "  \"sha256\": \"" << image.sha256 << "\",\n";
-    std::cout << "  \"size\": " << image.data.size() << ",\n";
-    std::cout << "  \"mapper\": " << image.mapper << ",\n";
-    std::cout << "  \"mirroring\": \""
-              << retrolarium::core::mirroringName(image.mirroring) << "\",\n";
-    std::cout << "  \"battery\": " << (image.battery ? "true" : "false") << ",\n";
-    std::cout << "  \"regions\": [\n";
-    const auto regions = image.regions();
-    for (std::size_t index = 0; index < regions.size(); ++index) {
-        const auto &entry = regions[index];
-        std::cout << "    {\"name\": \"" << entry.name << "\", \"file_offset\": "
-                  << entry.fileOffset << ", \"size\": " << entry.size
-                  << ", \"sha256\": \"" << entry.sha256 << "\"}"
-                  << (index + 1 < regions.size() ? "," : "") << '\n';
-    }
-    std::cout << "  ]\n";
-    std::cout << "}\n";
-    return 0;
 }
 
 // Reports what was written so a caller can log or check it without re-reading
@@ -186,12 +155,6 @@ int main(int argc, char *argv[])
         if (arguments[0] == "version") {
             std::cout << kVersion << '\n';
             return 0;
-        }
-        if (arguments[0] == "ines") {
-            if (arguments.size() == 3 && arguments[1] == "inspect") {
-                return inesInspect(arguments[2]);
-            }
-            throw UsageError("ines takes 'inspect <image.nes>'");
         }
         if (arguments[0] == "nemesis") {
             return nemesisCommand(arguments);
