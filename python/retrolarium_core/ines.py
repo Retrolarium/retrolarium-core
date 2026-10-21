@@ -121,7 +121,10 @@ def parse_ines(data: bytes, source: Path | None = None) -> InesImage:
     header = data[:16]
     flags6 = header[6]
     flags7 = header[7]
-    mapper = (flags6 >> 4) | (flags7 & 0xF0)
+    # An old dumper's tag in bytes 12-15 ("DiskDude!") means byte 7 is junk
+    # too: emulators then take the low mapper nibble only.
+    archaic = any(header[12:16])
+    mapper = (flags6 >> 4) | (0 if archaic else flags7 & 0xF0)
     trainer_size = 512 if flags6 & 0x04 else 0
     prg_size = header[4] * 0x4000
     chr_size = header[5] * 0x2000

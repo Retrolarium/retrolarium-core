@@ -50,10 +50,12 @@ def _checkout_candidates() -> list[Path]:
     here = Path(__file__).resolve()
     candidates: list[Path] = []
     for parent in list(here.parents)[:6]:
-        candidates.append(parent / "build" / "core" / _executable_name())
-        candidates.append(parent / "retrolarium-core" / "build" / _executable_name())
-        # retrolarium-core as a repository of its own: <repo>/build/rlcore.
-        candidates.append(parent / "build" / _executable_name())
+        for build in (parent / "build" / "core", parent / "retrolarium-core" / "build", parent / "build"):
+            # retrolarium-core as a repository of its own: <repo>/build/rlcore;
+            # a multi-configuration generator (Visual Studio) adds Release/ or
+            # Debug/.
+            for folder in (build, build / "Release", build / "RelWithDebInfo", build / "Debug"):
+                candidates.append(folder / _executable_name())
     return candidates
 
 

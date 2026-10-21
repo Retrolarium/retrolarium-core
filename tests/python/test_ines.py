@@ -42,6 +42,11 @@ class InesTests(unittest.TestCase):
         self.assertEqual(0, cpu_to_prg_offset(image, 0xC000))
         self.assertEqual(0, cpu_to_prg_offset(image, 0x8000))
 
+    def test_an_old_dumpers_tag_leaves_the_low_mapper_nibble(self) -> None:
+        data = bytearray(nrom16_image())
+        data[7:16] = b"DiskDude!"
+        self.assertEqual(0, parse_ines(bytes(data)).mapper)
+
     def test_rejects_trailing_bytes(self) -> None:
         with self.assertRaises(InesError):
             parse_ines(nrom16_image() + b"unexpected")

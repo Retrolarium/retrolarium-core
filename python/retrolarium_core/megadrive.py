@@ -157,10 +157,11 @@ def _text(data: bytes, start: int, end: int) -> str:
     return data[start:end].decode("ascii", errors="replace").rstrip(" \0")
 
 
-def cartridge_checksum(data: bytes) -> int:
-    """Return the standard 16-bit big-endian sum from file offset 0x200."""
+def cartridge_checksum(data: bytes, end: int | None = None) -> int:
+    """Return the standard 16-bit big-endian sum from file offset 0x200 to
+    `end` (the end of the file by default)."""
     total = 0
-    for offset in range(0x200, len(data), 2):
+    for offset in range(0x200, len(data) if end is None else min(end, len(data)), 2):
         word = data[offset:offset + 2]
         if len(word) == 1:
             word += b"\0"
@@ -173,7 +174,11 @@ def stamp_cartridge_checksum(data: bytes) -> bytes:
     if len(data) < 0x200 or data[0x100:0x104] != b"SEGA":
         raise MegaDriveError("cannot stamp a non-Mega Drive cartridge image")
     stamped = bytearray(data)
-    stamped[0x18E:0x190] = cartridge_checksum(data).to_bytes(2, "big")
+    # The boot code sums up to the ROM end the header gives: padding past it
+    # (or a file cut short of it) does not count.
+    rom_end = int.from_bytes(data[0x1A4:0x1A8], "big")
+    end = rom_end + 1 if 0x200 < rom_end < len(data) else None
+    stamped[0x18E:0x190] = cartridge_checksum(data, end).to_bytes(2, "big")
     return bytes(stamped)
 
 

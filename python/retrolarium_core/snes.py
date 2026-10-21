@@ -455,7 +455,10 @@ def rom_offset_aliases(image: SnesImage, offset: int) -> tuple[int, ...]:
     else:
         bank = offset // 0x10000
         within = offset & 0xFFFF
-        aliases.add(((0x40 + bank) << 16) | within)
+        # Banks $7E and $7F are work RAM: the last two ROM banks have no
+        # alias there.
+        if 0x40 + bank not in {0x7E, 0x7F}:
+            aliases.add(((0x40 + bank) << 16) | within)
         aliases.add(((0xC0 + bank) << 16) | within)
         if within >= 0x8000:
             aliases.add((bank << 16) | within)

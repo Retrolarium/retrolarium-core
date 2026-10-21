@@ -60,13 +60,19 @@ def _validate_build_runner(
         if recipe == "ca65-ld65-v1"
         else ("source", "object")
     )
-    for field in fields:
-        artifact_path(project_directory, build.get(field))
+    paths = {field: artifact_path(project_directory, build.get(field)).resolve() for field in fields}
     output = artifact_path(root, build.get("output"))
     try:
         output.relative_to(project_directory)
     except ValueError as exc:
         raise ContractError("build output must be inside project_directory") from exc
+    # The kit deletes the outputs before it builds: none may be an input.
+    paths["output"] = output.resolve()
+    written = [field for field in ("object", "map", "output") if field in paths]
+    for field in written:
+        for other, path in paths.items():
+            if other != field and path == paths[field]:
+                raise ContractError(f"build {field} must not be the same file as its {other}")
 
 
 def _sha256(path: Path) -> str:
@@ -99,10 +105,8 @@ def validate_nes_disassembly_manifest(
         raise ContractError("manifest is not a NES disassembly project")
 
     input_record = _mapping(manifest.get("input"), "input")
-    input_sha256 = input_record.get("sha256")
+    input_sha256 = _require_sha256(input_record.get("sha256"), "input.sha256")
     input_size = input_record.get("size")
-    if not isinstance(input_sha256, str) or len(input_sha256) != 64:
-        raise ContractError("input.sha256 must be a SHA-256 string")
     if not isinstance(input_size, int) or input_size <= 0:
         raise ContractError("input.size must be a positive integer")
 
@@ -191,7 +195,8 @@ def validate_nes_disassembly_manifest(
             raise ContractError(f"asset does not exist: {path}")
         offset = item.get("asset_file_offset")
         size = item.get("size")
-        if not isinstance(offset, int) or not isinstance(size, int):
+        if (not isinstance(offset, int) or not isinstance(size, int) or isinstance(offset, bool)
+                or isinstance(size, bool) or offset < 0 or size < 0):
             raise ContractError(f"asset {identifier} has invalid slice coordinates")
         payload = path.read_bytes()[offset:offset + size]
         actual = hashlib.sha256(payload).hexdigest()
@@ -671,6 +676,7 @@ def validate_snes_disassembly_manifest(
             if (
                 state.get("schema") != "retrolarium.snes.state-analysis"
                 or state.get("input_sha256") != rom_sha
+                or not isinstance(state.get("instructions", []), list)
                 or len(state.get("instructions", [])) != program.get("instruction_count")
             ):
                 raise ContractError("invalid W65C816 state instruction artifact")
