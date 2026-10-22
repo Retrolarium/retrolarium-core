@@ -16,18 +16,14 @@ struct CodeEntry final {
 // time, reading zeroes once the stream runs out.
 class BitReader final {
 public:
-    BitReader(const std::vector<std::uint8_t> &data, std::size_t position)
-        : data_(data)
-        , position_(position)
-    {
+    BitReader(const std::vector<std::uint8_t>& data, std::size_t position) : data_(data), position_(position) {
         buffer_ = static_cast<std::uint32_t>(at(position_)) << 8;
         buffer_ |= at(position_ + 1);
         position_ += 2;
         available_ = 16;
     }
 
-    [[nodiscard]] int peek(int count)
-    {
+    [[nodiscard]] int peek(int count) {
         while (available_ < count) {
             refill();
         }
@@ -38,13 +34,11 @@ public:
     void consume(int count) { available_ -= count; }
 
 private:
-    [[nodiscard]] std::uint8_t at(std::size_t index) const
-    {
-        return index < data_.size() ? data_[index] : std::uint8_t {0};
+    [[nodiscard]] std::uint8_t at(std::size_t index) const {
+        return index < data_.size() ? data_[index] : std::uint8_t{0};
     }
 
-    void refill()
-    {
+    void refill() {
         // Past the end the oracle shifts in zeroes, so a stream that stops a
         // little short decodes the same way on both sides; one that runs on
         // well past its end is broken and never ends.
@@ -62,16 +56,15 @@ private:
     static constexpr int kPastEndBytes = 4;
     int pastEnd_ = 0;
 
-    const std::vector<std::uint8_t> &data_;
+    const std::vector<std::uint8_t>& data_;
     std::size_t position_ = 0;
     std::uint32_t buffer_ = 0;
     int available_ = 0;
 };
 
-} // namespace
+}  // namespace
 
-std::vector<std::uint8_t> nemesisDecompress(const std::vector<std::uint8_t> &data)
-{
+std::vector<std::uint8_t> nemesisDecompress(const std::vector<std::uint8_t>& data) {
     const auto require = [&data](std::size_t index) {
         if (index >= data.size()) {
             throw NemesisError("Nemesis stream ended inside its header");
@@ -89,7 +82,7 @@ std::vector<std::uint8_t> nemesisDecompress(const std::vector<std::uint8_t> &dat
         return {};
     }
 
-    std::array<CodeEntry, 256> codeTable {};
+    std::array<CodeEntry, 256> codeTable{};
 
     while (true) {
         int value = require(position++);
@@ -124,12 +117,10 @@ std::vector<std::uint8_t> nemesisDecompress(const std::vector<std::uint8_t> &dat
                 const int base = codeByte << (8 - codeLength);
                 const int entries = 1 << (8 - codeLength);
                 for (int index = 0; index < entries; ++index) {
-                    codeTable[static_cast<std::size_t>(base | index)] =
-                        {true, codeLength, paletteIndex, runLength};
+                    codeTable[static_cast<std::size_t>(base | index)] = {true, codeLength, paletteIndex, runLength};
                 }
             } else {
-                codeTable[static_cast<std::size_t>(codeByte)] =
-                    {true, codeLength, paletteIndex, runLength};
+                codeTable[static_cast<std::size_t>(codeByte)] = {true, codeLength, paletteIndex, runLength};
             }
         }
         if (value == 0xFF) {
@@ -171,7 +162,7 @@ std::vector<std::uint8_t> nemesisDecompress(const std::vector<std::uint8_t> &dat
 
     while (outputCount > 0) {
         const int lookup = reader.peek(8);
-        const CodeEntry &entry = codeTable[static_cast<std::size_t>(lookup)];
+        const CodeEntry& entry = codeTable[static_cast<std::size_t>(lookup)];
         if (entry.valid) {
             reader.consume(entry.codeLength);
             for (int repeat = 0; repeat < entry.runLength; ++repeat) {
@@ -199,4 +190,4 @@ std::vector<std::uint8_t> nemesisDecompress(const std::vector<std::uint8_t> &dat
     return output;
 }
 
-} // namespace retrolarium::core
+}  // namespace retrolarium::core

@@ -34,15 +34,11 @@ def cartridge(
     reset: int = 0x9000,
 ) -> bytes:
     data = bytearray([0xFF] * size)
-    header_offset = (
-        LOROM_HEADER_OFFSET if mapping == "lorom" else HIROM_HEADER_OFFSET
-    )
+    header_offset = LOROM_HEADER_OFFSET if mapping == "lorom" else HIROM_HEADER_OFFSET
     header = memoryview(data)[header_offset : header_offset + 0x40]
     header[:] = bytes(0x40)
     header[0:21] = b"RETROLARIUM SNES TEST".ljust(21)
-    header[0x15] = map_mode_byte if map_mode_byte is not None else (
-        0x30 if mapping == "lorom" else 0x21
-    )
+    header[0x15] = map_mode_byte if map_mode_byte is not None else (0x30 if mapping == "lorom" else 0x21)
     header[0x16] = chipset
     header[0x17] = size.bit_length() - 1 - 10
     header[0x18] = ram_size_code
@@ -61,12 +57,8 @@ def cartridge(
         header[offset : offset + 2] = value.to_bytes(2, "little")
     header.release()
     checksum = (cartridge_checksum(data) + 0x1FE) & 0xFFFF
-    data[header_offset + 0x1C : header_offset + 0x1E] = (
-        checksum ^ 0xFFFF
-    ).to_bytes(2, "little")
-    data[header_offset + 0x1E : header_offset + 0x20] = checksum.to_bytes(
-        2, "little"
-    )
+    data[header_offset + 0x1C : header_offset + 0x1E] = (checksum ^ 0xFFFF).to_bytes(2, "little")
+    data[header_offset + 0x1E : header_offset + 0x20] = checksum.to_bytes(2, "little")
     container = bytes(data)
     if copier_header:
         container = bytes([0x5A] * 0x200) + container
@@ -84,9 +76,7 @@ class SnesTests(unittest.TestCase):
         )
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         manifest = image_manifest(parse_snes(cartridge("lorom")))
-        self.assertEqual(
-            "retrolarium.snes.image", schema["properties"]["schema"]["const"]
-        )
+        self.assertEqual("retrolarium.snes.image", schema["properties"]["schema"]["const"])
         self.assertEqual(1, schema["properties"]["schema_version"]["const"])
         self.assertEqual(set(schema["required"]), set(manifest))
 
@@ -103,9 +93,7 @@ class SnesTests(unittest.TestCase):
         self.assertEqual(0x1000, snes_to_rom_offset(image, 0x809000))
         self.assertEqual(0x1000, snes_to_rom_offset(image, 0x049000))
         self.assertEqual(0x009000, rom_offset_to_snes(image, 0x1000))
-        self.assertEqual(
-            (0x009000, 0x809000), rom_offset_aliases(image, 0x1000)
-        )
+        self.assertEqual((0x009000, 0x809000), rom_offset_aliases(image, 0x1000))
         self.assertEqual(16, len(image.vector_table))
         self.assertEqual("nmi", image.vector_table[5].name)
         self.assertEqual("reset", image.vector_table[14].name)
@@ -128,9 +116,7 @@ class SnesTests(unittest.TestCase):
         self.assertEqual(0x1234, snes_to_rom_offset(image, 0x401234))
         self.assertEqual(0x1234, snes_to_rom_offset(image, 0xC01234))
         self.assertEqual(0xC01234, rom_offset_to_snes(image, 0x1234))
-        self.assertEqual(
-            (0x401234, 0xC01234), rom_offset_aliases(image, 0x1234)
-        )
+        self.assertEqual((0x401234, 0xC01234), rom_offset_aliases(image, 0x1234))
 
     def test_preserves_optional_copier_header_as_a_container_region(self) -> None:
         payload = cartridge("lorom", copier_header=True)

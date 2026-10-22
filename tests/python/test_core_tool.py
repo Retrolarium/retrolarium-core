@@ -45,9 +45,7 @@ class FindCoreToolTest(unittest.TestCase):
 
     def test_missing_override_is_reported_clearly(self) -> None:
         previous = os.environ.get(core_tool.ENVIRONMENT_OVERRIDE)
-        os.environ[core_tool.ENVIRONMENT_OVERRIDE] = str(
-            Path(tempfile.gettempdir()) / "definitely-not-here"
-        )
+        os.environ[core_tool.ENVIRONMENT_OVERRIDE] = str(Path(tempfile.gettempdir()) / "definitely-not-here")
         try:
             with self.assertRaises(CoreToolError) as raised:
                 core_tool.find_core_tool()
@@ -66,9 +64,7 @@ class CoreToolRoundTripTest(unittest.TestCase):
 
     def test_enigma_round_trip(self) -> None:
         words = list(range(0x100, 0x110)) + [0x0042] * 8
-        plain = b"".join(
-            bytes(((word >> 8) & 0xFF, word & 0xFF)) for word in words
-        )
+        plain = b"".join(bytes(((word >> 8) & 0xFF, word & 0xFF)) for word in words)
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source = root / "plain.bin"

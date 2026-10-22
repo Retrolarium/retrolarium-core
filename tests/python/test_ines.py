@@ -26,9 +26,7 @@ class InesTests(unittest.TestCase):
         flags6 = (mapper & 0x0F) << 4
         flags7 = mapper & 0xF0
         header = b"NES\x1a" + bytes((prg_units, chr_units, flags6, flags7)) + bytes(8)
-        prg = b"".join(
-            bytes((bank,)) * 0x8000 for bank in range((prg_units + 1) // 2)
-        )[:prg_units * 0x4000]
+        prg = b"".join(bytes((bank,)) * 0x8000 for bank in range((prg_units + 1) // 2))[: prg_units * 0x4000]
         chr_data = b"".join(bytes((bank,)) * 0x2000 for bank in range(chr_units))
         return header + prg + chr_data
 
@@ -65,9 +63,7 @@ class InesTests(unittest.TestCase):
         self.assertEqual(1, sum(item.region == "prg" for item in projections))
         chr_banks = [item for item in projections if item.region == "chr"]
         self.assertEqual([0, 1, 2, 3], [item.bank for item in chr_banks])
-        self.assertTrue(
-            all(item.selector == "mapper.chr_bank" for item in chr_banks)
-        )
+        self.assertTrue(all(item.selector == "mapper.chr_bank" for item in chr_banks))
         self.assertEqual(
             0x6000,
             address_to_region_offset(image, "chr", "ppu", 0, bank=3),
@@ -86,9 +82,7 @@ class InesTests(unittest.TestCase):
         self.assertEqual("nes.gnrom", mapper_profile(image).profile_id)
         prg_banks = [item for item in projections if item.region == "prg"]
         self.assertEqual([0, 1, 2, 3], [item.bank for item in prg_banks])
-        self.assertTrue(
-            all(item.selector == "mapper.prg_bank" for item in prg_banks)
-        )
+        self.assertTrue(all(item.selector == "mapper.prg_bank" for item in prg_banks))
         with self.assertRaises(InesError):
             cpu_to_prg_offset(image, 0x8000)
         self.assertEqual(0x10000, cpu_to_prg_offset(image, 0x8000, bank=2))
@@ -101,7 +95,7 @@ class InesTests(unittest.TestCase):
 
     def test_nrom_analysis_keeps_the_original_container(self) -> None:
         image = parse_ines(nrom16_image())
-        target, = prg_analysis_targets(image)
+        (target,) = prg_analysis_targets(image)
 
         self.assertFalse(target.synthesized)
         self.assertIs(image, target.image)

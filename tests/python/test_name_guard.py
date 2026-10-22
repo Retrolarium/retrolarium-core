@@ -53,8 +53,8 @@ class WordTests(unittest.TestCase):
         guard = Guard(frozenset({digest("bros")}), 1)
         self.assertEqual([], guard.matches("Super Mario Bros. 2"))
         self.assertEqual(["bros"], guard.matches("the bros"))
-        text = name_guard.strip_titles('''"the Super "
-    "Mario Bros." disk''')
+        text = name_guard.strip_titles(""""the Super "
+    "Mario Bros." disk""")
         self.assertEqual([], [m for line in text.splitlines() for m in guard.matches(line)])
 
 
@@ -62,15 +62,21 @@ class RepositoryTests(unittest.TestCase):
     def test_names_and_tables_are_found_in_a_tree(self) -> None:
         guard = Guard(frozenset({digest("final boss")}), 2)
         table = ", ".join(str(n) for n in range(30))
-        with git_repository({"src/a.cpp": "int kFinalBoss = 1;\n",
-                             "src/b.py": f"T = [{table}]\n",
-                             "third_party/c.cpp": f"int t[] = {{{table}}};\n",
-                             "src/c.py": "SHORT = (1, 2, 3)\n"}) as directory:
+        with git_repository(
+            {
+                "src/a.cpp": "int kFinalBoss = 1;\n",
+                "src/b.py": f"T = [{table}]\n",
+                "third_party/c.cpp": f"int t[] = {{{table}}};\n",
+                "src/c.py": "SHORT = (1, 2, 3)\n",
+            }
+        ) as directory:
             root = Path(directory)
-            self.assertEqual(["src/a.cpp:1: in-game name 'final boss'"],
-                             [f.render() for f in name_guard.check_names(root, guard)])
-            self.assertEqual(["src/b.py:1: literal table of 30 numbers"],
-                             [f.render() for f in name_guard.check_tables(root)])
+            self.assertEqual(
+                ["src/a.cpp:1: in-game name 'final boss'"], [f.render() for f in name_guard.check_names(root, guard)]
+            )
+            self.assertEqual(
+                ["src/b.py:1: literal table of 30 numbers"], [f.render() for f in name_guard.check_tables(root)]
+            )
             (root / name_guard.TABLES_ALLOWLIST).write_bytes(b"src/b.py  # a test table\n")
             self.assertEqual([], name_guard.check_tables(root))
 

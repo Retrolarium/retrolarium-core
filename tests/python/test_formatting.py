@@ -10,8 +10,14 @@ class FilesForTests(unittest.TestCase):
     def test_third_party_trees_and_formatignore_paths_are_left_alone(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)
-            for name in ("a.py", "third_party/b.py", "tools/third_party/c.py", "archive/d.py", "games/e.md",
-                         "games/f.py"):
+            for name in (
+                "a.py",
+                "third_party/b.py",
+                "tools/third_party/c.py",
+                "archive/d.py",
+                "games/e.md",
+                "games/f.py",
+            ):
                 (repo / name).parent.mkdir(parents=True, exist_ok=True)
                 (repo / name).write_text("x = 1\n", encoding="utf-8")
             (repo / ".formatignore").write_text("# frozen\narchive/\ngames/*.py\n", encoding="utf-8")

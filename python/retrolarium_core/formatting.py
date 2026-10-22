@@ -96,7 +96,7 @@ def _has(repo: Path, names: tuple[str, ...]) -> bool:
 
 def _batches(files: list[str]):
     for start in range(0, len(files), BATCH):
-        yield files[start:start + BATCH]
+        yield files[start : start + BATCH]
 
 
 def _call(command: list[str], repo: Path) -> subprocess.CompletedProcess:
@@ -119,6 +119,7 @@ def _changed_by_compare(repo: Path, files: list[str], format_text: Callable[[str
 
 # --- the tools ---------------------------------------------------------------
 
+
 def _module_missing(module: str, install: str) -> Callable[[], str | None]:
     def missing() -> str | None:
         try:
@@ -126,6 +127,7 @@ def _module_missing(module: str, install: str) -> Callable[[], str | None]:
         except ImportError:
             return f"{install}"
         return None
+
     return missing
 
 
@@ -141,7 +143,8 @@ def _markdown(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int
     if own:
         options = tomllib.loads((repo / ".mdformat.toml").read_text(encoding="utf-8"))
     return 0, _changed_by_compare(
-        repo, files, lambda name, text: mdformat.text(text, options=options, extensions={"gfm", "tables"}), check)
+        repo, files, lambda name, text: mdformat.text(text, options=options, extensions={"gfm", "tables"}), check
+    )
 
 
 def _python(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, list[str]]:
@@ -149,9 +152,15 @@ def _python(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, 
     ruff = shutil.which("ruff")
 
     def format_text(name: str, text: str) -> str:
-        result = subprocess.run([ruff, "format", *options, "--stdin-filename", name, "-"], input=text.encode("utf-8"),
-                                capture_output=True, cwd=repo, check=True)
+        result = subprocess.run(
+            [ruff, "format", *options, "--stdin-filename", name, "-"],
+            input=text.encode("utf-8"),
+            capture_output=True,
+            cwd=repo,
+            check=True,
+        )
         return result.stdout.decode("utf-8")
+
     return 0, _changed_by_compare(repo, files, format_text, check)
 
 
@@ -160,9 +169,15 @@ def _clang(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, l
     program = shutil.which("clang-format")
 
     def format_text(name: str, text: str) -> str:
-        result = subprocess.run([program, f"--style={style}", f"--assume-filename={name}"], input=text.encode("utf-8"),
-                                capture_output=True, cwd=repo, check=True)
+        result = subprocess.run(
+            [program, f"--style={style}", f"--assume-filename={name}"],
+            input=text.encode("utf-8"),
+            capture_output=True,
+            cwd=repo,
+            check=True,
+        )
         return result.stdout.decode("utf-8")
+
     return 0, _changed_by_compare(repo, files, format_text, check)
 
 
@@ -171,9 +186,15 @@ def _lua(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, lis
     stylua = shutil.which("stylua")
 
     def format_text(name: str, text: str) -> str:
-        result = subprocess.run([stylua, *options, "--stdin-filepath", name, "-"], input=text.encode("utf-8"),
-                                capture_output=True, cwd=repo, check=True)
+        result = subprocess.run(
+            [stylua, *options, "--stdin-filepath", name, "-"],
+            input=text.encode("utf-8"),
+            capture_output=True,
+            cwd=repo,
+            check=True,
+        )
         return result.stdout.decode("utf-8")
+
     return 0, _changed_by_compare(repo, files, format_text, check)
 
 
@@ -195,12 +216,28 @@ def _powershell(repo: Path, files: list[str], check: bool, own: bool) -> tuple[i
         work.mkdir()
         for index, name in enumerate(files):
             (work / f"{index}.ps1").write_bytes((repo / name).read_bytes())
-        result = _call(["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
-                        str(folder / "format.ps1"), "-Settings", str(settings), "-Folder", str(work)], repo)
+        result = _call(
+            [
+                "powershell",
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(folder / "format.ps1"),
+                "-Settings",
+                str(settings),
+                "-Folder",
+                str(work),
+            ],
+            repo,
+        )
         if result.returncode:
             return 1, [result.stderr.strip() or result.stdout.strip()]
-        formatted = {name: (work / f"{index}.ps1.out").read_bytes().decode("utf-8").replace("\r\n", "\n")
-                     for index, name in enumerate(files)}
+        formatted = {
+            name: (work / f"{index}.ps1.out").read_bytes().decode("utf-8").replace("\r\n", "\n")
+            for index, name in enumerate(files)
+        }
     return 0, _changed_by_compare(repo, files, lambda name, text: formatted[name], check)
 
 
@@ -223,9 +260,11 @@ def _toml(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, li
     taplo = shutil.which("taplo")
 
     def format_text(name: str, text: str) -> str:
-        result = subprocess.run([taplo, "fmt", *options, "-"], input=text.encode("utf-8"), capture_output=True,
-                                cwd=repo, check=True)
+        result = subprocess.run(
+            [taplo, "fmt", *options, "-"], input=text.encode("utf-8"), capture_output=True, cwd=repo, check=True
+        )
         return result.stdout.decode("utf-8")
+
     return 0, _changed_by_compare(repo, files, format_text, check)
 
 
@@ -263,29 +302,75 @@ def _shell(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, l
 def _powershell_missing() -> str | None:
     if not shutil.which("powershell"):
         return "PowerShell"
-    found = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command",
-                            "if (Get-Module -ListAvailable PSScriptAnalyzer) { 'yes' }"],
-                           capture_output=True, text=True)
+    found = subprocess.run(
+        [
+            "powershell",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "if (Get-Module -ListAvailable PSScriptAnalyzer) { 'yes' }",
+        ],
+        capture_output=True,
+        text=True,
+    )
     return None if "yes" in found.stdout else "Install-Module PSScriptAnalyzer -Scope CurrentUser"
 
 
 LANGUAGES = (
-    Language("Markdown", ("*.md",), (".mdformat.toml",), _markdown,
-             _module_missing("mdformat", "pip install mdformat mdformat-gfm mdformat-tables")),
+    Language(
+        "Markdown",
+        ("*.md",),
+        (".mdformat.toml",),
+        _markdown,
+        _module_missing("mdformat", "pip install mdformat mdformat-gfm mdformat-tables"),
+    ),
     Language("Python", ("*.py",), ("ruff.toml", ".ruff.toml"), _python, _program_missing("ruff", "pip install ruff")),
-    Language("C and C++", ("*.c", "*.cc", "*.cpp", "*.h", "*.hpp"), (".clang-format",), _clang,
-             _program_missing("clang-format", "pip install clang-format")),
-    Language("Lua", ("*.lua",), ("stylua.toml", ".stylua.toml"), _lua,
-             _program_missing("stylua", "npm install -g @johnnymorganz/stylua-bin")),
-    Language("PowerShell", ("*.ps1", "*.psm1", "*.psd1"), ("PSScriptAnalyzerSettings.psd1",), _powershell,
-             _powershell_missing),
-    Language("JSON", ("*.json",), (".prettierrc", ".prettierrc.json"), _json,
-             _program_missing("prettier", "npm install -g prettier")),
-    Language("TOML", ("*.toml", "*.rlj"), (".taplo.toml", "taplo.toml"), _toml,
-             _program_missing("taplo", "npm install -g @taplo/cli")),
-    Language("Java", ("*.java",), (), _java,
-             lambda: None if shutil.which("java") and java_format_jar() else
-             "java and google-java-format's all-deps jar (RETROLARIUM_JAVA_FORMAT)"),
+    Language(
+        "C and C++",
+        ("*.c", "*.cc", "*.cpp", "*.h", "*.hpp"),
+        (".clang-format",),
+        _clang,
+        _program_missing("clang-format", "pip install clang-format"),
+    ),
+    Language(
+        "Lua",
+        ("*.lua",),
+        ("stylua.toml", ".stylua.toml"),
+        _lua,
+        _program_missing("stylua", "npm install -g @johnnymorganz/stylua-bin"),
+    ),
+    Language(
+        "PowerShell",
+        ("*.ps1", "*.psm1", "*.psd1"),
+        ("PSScriptAnalyzerSettings.psd1",),
+        _powershell,
+        _powershell_missing,
+    ),
+    Language(
+        "JSON",
+        ("*.json",),
+        (".prettierrc", ".prettierrc.json"),
+        _json,
+        _program_missing("prettier", "npm install -g prettier"),
+    ),
+    Language(
+        "TOML",
+        ("*.toml", "*.rlj"),
+        (".taplo.toml", "taplo.toml"),
+        _toml,
+        _program_missing("taplo", "npm install -g @taplo/cli"),
+    ),
+    Language(
+        "Java",
+        ("*.java",),
+        (),
+        _java,
+        lambda: (
+            None
+            if shutil.which("java") and java_format_jar()
+            else "java and google-java-format's all-deps jar (RETROLARIUM_JAVA_FORMAT)"
+        ),
+    ),
     Language("shell", ("*.sh",), (), _shell, _program_missing("shfmt", "pip install shfmt-py")),
 )
 
@@ -319,8 +404,10 @@ def run(repo: Path, check: bool = False, out=sys.stderr) -> int:
             continue
         verb = "would change" if check else "formatted"
         if changed:
-            print(f"[{'FAIL' if check else 'OK'}] {language.name}: {verb} {len(changed)} of {len(files)} file(s)",
-                  file=out)
+            print(
+                f"[{'FAIL' if check else 'OK'}] {language.name}: {verb} {len(changed)} of {len(files)} file(s)",
+                file=out,
+            )
             for name in changed[:20]:
                 print(f"    {name}", file=out)
             failed |= check

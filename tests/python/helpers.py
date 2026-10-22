@@ -1,4 +1,5 @@
 """Small images the core tests build on."""
+
 from __future__ import annotations
 
 

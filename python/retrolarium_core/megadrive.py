@@ -146,11 +146,11 @@ def _region(name: str, offset: int, payload: bytes) -> ImageRegion:
 
 
 def _u16(data: bytes, offset: int) -> int:
-    return int.from_bytes(data[offset:offset + 2], "big")
+    return int.from_bytes(data[offset : offset + 2], "big")
 
 
 def _u32(data: bytes, offset: int) -> int:
-    return int.from_bytes(data[offset:offset + 4], "big")
+    return int.from_bytes(data[offset : offset + 4], "big")
 
 
 def _text(data: bytes, start: int, end: int) -> str:
@@ -162,7 +162,7 @@ def cartridge_checksum(data: bytes, end: int | None = None) -> int:
     `end` (the end of the file by default)."""
     total = 0
     for offset in range(0x200, len(data) if end is None else min(end, len(data)), 2):
-        word = data[offset:offset + 2]
+        word = data[offset : offset + 2]
         if len(word) == 1:
             word += b"\0"
         total = (total + int.from_bytes(word, "big")) & 0xFFFF
@@ -203,9 +203,7 @@ def _parse_header(data: bytes) -> CartridgeHeader:
 
 def parse_megadrive(data: bytes, source: Path | None = None) -> MegaDriveImage:
     if len(data) < 0x200:
-        raise MegaDriveError(
-            f"image is {len(data)} bytes; a cartridge header needs at least 512"
-        )
+        raise MegaDriveError(f"image is {len(data)} bytes; a cartridge header needs at least 512")
     if not data[0x100:0x110].startswith(b"SEGA"):
         raise MegaDriveError("missing SEGA cartridge signature at file offset 0x100")
 
@@ -231,14 +229,9 @@ def parse_megadrive(data: bytes, source: Path | None = None) -> MegaDriveImage:
     )
     reset_vector = vector_table[1]
     if reset_vector.address & 1:
-        raise MegaDriveError(
-            f"reset vector is odd: 0x{reset_vector.raw_value:08X}"
-        )
+        raise MegaDriveError(f"reset vector is odd: 0x{reset_vector.raw_value:08X}")
     if not header.rom_start <= reset_vector.address <= actual_rom_end:
-        raise MegaDriveError(
-            f"reset vector 0x{reset_vector.raw_value:08X} resolves outside "
-            "the file-backed ROM range"
-        )
+        raise MegaDriveError(f"reset vector 0x{reset_vector.raw_value:08X} resolves outside the file-backed ROM range")
 
     computed_checksum = cartridge_checksum(data)
     if header.checksum == 0:
@@ -250,17 +243,11 @@ def parse_megadrive(data: bytes, source: Path | None = None) -> MegaDriveImage:
 
     warnings: list[str] = []
     if header.rom_end != actual_rom_end:
-        warnings.append(
-            "declared ROM end 0x"
-            f"{header.rom_end:06X} differs from file-backed end 0x{actual_rom_end:06X}"
-        )
+        warnings.append(f"declared ROM end 0x{header.rom_end:06X} differs from file-backed end 0x{actual_rom_end:06X}")
     if checksum_status == "absent":
         warnings.append("cartridge checksum is not populated")
     elif checksum_status == "mismatch":
-        warnings.append(
-            f"cartridge checksum is 0x{header.checksum:04X}; "
-            f"computed value is 0x{computed_checksum:04X}"
-        )
+        warnings.append(f"cartridge checksum is 0x{header.checksum:04X}; computed value is 0x{computed_checksum:04X}")
 
     return MegaDriveImage(
         source=source,
@@ -283,9 +270,7 @@ def load_megadrive(path: Path) -> MegaDriveImage:
 
 def m68k_to_rom_offset(image: MegaDriveImage, address: int) -> int:
     if not image.header.rom_start <= address <= image.actual_rom_end:
-        raise MegaDriveError(
-            f"m68k address 0x{address:06X} is outside the file-backed ROM range"
-        )
+        raise MegaDriveError(f"m68k address 0x{address:06X} is outside the file-backed ROM range")
     return address - image.header.rom_start
 
 

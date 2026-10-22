@@ -7,42 +7,34 @@ namespace {
 // end of the stream: shift in zeroes rather than fail.
 class BitReader final {
 public:
-    BitReader(const std::vector<std::uint8_t> &data, std::size_t position)
-        : data_(data)
-        , position_(position)
-    {
+    BitReader(const std::vector<std::uint8_t>& data, std::size_t position) : data_(data), position_(position) {
         buffer_ = static_cast<std::uint32_t>(at(position_)) << 8;
         buffer_ |= at(position_ + 1);
         position_ += 2;
         available_ = 16;
     }
 
-    [[nodiscard]] int read(int count)
-    {
+    [[nodiscard]] int read(int count) {
         const int value = peek(count);
         available_ -= count;
         return value;
     }
 
-    [[nodiscard]] int peek(int count)
-    {
+    [[nodiscard]] int peek(int count) {
         while (available_ < count) {
             refill();
         }
-        return static_cast<int>(
-            (buffer_ >> (available_ - count)) & ((1u << count) - 1u));
+        return static_cast<int>((buffer_ >> (available_ - count)) & ((1u << count) - 1u));
     }
 
     void giveBack(int count) { available_ += count; }
 
 private:
-    [[nodiscard]] std::uint8_t at(std::size_t index) const
-    {
-        return index < data_.size() ? data_[index] : std::uint8_t {0};
+    [[nodiscard]] std::uint8_t at(std::size_t index) const {
+        return index < data_.size() ? data_[index] : std::uint8_t{0};
     }
 
-    void refill()
-    {
+    void refill() {
         // A stream that runs on well past its end never reaches its
         // terminator: refused, not decoded for ever.
         const std::uint32_t next = position_ < data_.size() ? data_[position_] : 0u;
@@ -58,7 +50,7 @@ private:
     static constexpr int kPastEndBytes = 4;
     int pastEnd_ = 0;
 
-    const std::vector<std::uint8_t> &data_;
+    const std::vector<std::uint8_t>& data_;
     std::size_t position_ = 0;
     std::uint32_t buffer_ = 0;
     int available_ = 0;
@@ -66,17 +58,14 @@ private:
 
 constexpr std::size_t kMaxOutput = 0x10000;
 
-void emit(std::vector<std::uint8_t> &output, int tile)
-{
+void emit(std::vector<std::uint8_t>& output, int tile) {
     output.push_back(static_cast<std::uint8_t>((tile >> 8) & 0xFF));
     output.push_back(static_cast<std::uint8_t>(tile & 0xFF));
 }
 
-} // namespace
+}  // namespace
 
-std::vector<std::uint8_t> enigmaDecompress(
-    const std::vector<std::uint8_t> &data, int baseTile)
-{
+std::vector<std::uint8_t> enigmaDecompress(const std::vector<std::uint8_t>& data, int baseTile) {
     const auto require = [&data](std::size_t index) {
         if (index >= data.size()) {
             throw EnigmaError("Enigma stream ended inside its header");
@@ -149,52 +138,52 @@ std::vector<std::uint8_t> enigmaDecompress(
         const int repeat = code & 0x0F;
 
         switch (mode) {
-        case 0:
-        case 1:
-            for (int index = 0; index <= repeat; ++index) {
-                emit(output, incTile);
-                incTile = (incTile + 1) & 0xFFFF;
+            case 0:
+            case 1:
+                for (int index = 0; index <= repeat; ++index) {
+                    emit(output, incTile);
+                    incTile = (incTile + 1) & 0xFFFF;
+                }
+                break;
+            case 2:
+            case 3:
+                for (int index = 0; index <= repeat; ++index) {
+                    emit(output, staticTile);
+                }
+                break;
+            case 4: {
+                const int tile = decodeTile();
+                for (int index = 0; index <= repeat; ++index) {
+                    emit(output, tile);
+                }
+                break;
             }
-            break;
-        case 2:
-        case 3:
-            for (int index = 0; index <= repeat; ++index) {
-                emit(output, staticTile);
+            case 5: {
+                int tile = decodeTile();
+                for (int index = 0; index <= repeat; ++index) {
+                    emit(output, tile);
+                    tile = (tile + 1) & 0xFFFF;
+                }
+                break;
             }
-            break;
-        case 4: {
-            const int tile = decodeTile();
-            for (int index = 0; index <= repeat; ++index) {
-                emit(output, tile);
+            case 6: {
+                int tile = decodeTile();
+                for (int index = 0; index <= repeat; ++index) {
+                    emit(output, tile);
+                    tile = (tile - 1) & 0xFFFF;
+                }
+                break;
             }
-            break;
-        }
-        case 5: {
-            int tile = decodeTile();
-            for (int index = 0; index <= repeat; ++index) {
-                emit(output, tile);
-                tile = (tile + 1) & 0xFFFF;
-            }
-            break;
-        }
-        case 6: {
-            int tile = decodeTile();
-            for (int index = 0; index <= repeat; ++index) {
-                emit(output, tile);
-                tile = (tile - 1) & 0xFFFF;
-            }
-            break;
-        }
-        default:
-            if (repeat == 0x0F) {
-                return output;
-            }
-            for (int index = 0; index <= repeat; ++index) {
-                emit(output, decodeTile());
-            }
-            break;
+            default:
+                if (repeat == 0x0F) {
+                    return output;
+                }
+                for (int index = 0; index <= repeat; ++index) {
+                    emit(output, decodeTile());
+                }
+                break;
         }
     }
 }
 
-} // namespace retrolarium::core
+}  // namespace retrolarium::core

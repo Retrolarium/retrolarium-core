@@ -28,8 +28,7 @@ public:
     using std::runtime_error::runtime_error;
 };
 
-void printUsage(std::ostream &out)
-{
+void printUsage(std::ostream& out) {
     out << "usage: rlcore <command> [arguments]\n"
            "\n"
            "commands:\n"
@@ -46,8 +45,7 @@ void printUsage(std::ostream &out)
 // C library stands in for std::filesystem, which the cross-build's GCC 7.3
 // does not have.
 #ifdef _WIN32
-std::wstring widePath(const std::string &utf8)
-{
+std::wstring widePath(const std::string& utf8) {
     const int size = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
     std::wstring wide(size > 0 ? static_cast<std::size_t>(size - 1) : 0, L'\0');
     if (size > 1) {
@@ -56,36 +54,20 @@ std::wstring widePath(const std::string &utf8)
     return wide;
 }
 
-std::FILE *openFile(const std::string &path, const wchar_t *mode)
-{
-    return _wfopen(widePath(path).c_str(), mode);
-}
+std::FILE* openFile(const std::string& path, const wchar_t* mode) { return _wfopen(widePath(path).c_str(), mode); }
 
-bool replaceFile(const std::string &from, const std::string &to)
-{
+bool replaceFile(const std::string& from, const std::string& to) {
     return MoveFileExW(widePath(from).c_str(), widePath(to).c_str(),
-               MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
+                       MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
 }
 
-void removeFile(const std::string &path)
-{
-    _wremove(widePath(path).c_str());
-}
+void removeFile(const std::string& path) { _wremove(widePath(path).c_str()); }
 #else
-std::FILE *openFile(const std::string &path, const char *mode)
-{
-    return std::fopen(path.c_str(), mode);
-}
+std::FILE* openFile(const std::string& path, const char* mode) { return std::fopen(path.c_str(), mode); }
 
-bool replaceFile(const std::string &from, const std::string &to)
-{
-    return std::rename(from.c_str(), to.c_str()) == 0;
-}
+bool replaceFile(const std::string& from, const std::string& to) { return std::rename(from.c_str(), to.c_str()) == 0; }
 
-void removeFile(const std::string &path)
-{
-    std::remove(path.c_str());
-}
+void removeFile(const std::string& path) { std::remove(path.c_str()); }
 #endif
 
 #ifdef _WIN32
@@ -94,9 +76,8 @@ void removeFile(const std::string &path)
 #define RL_MODE(text) text
 #endif
 
-std::vector<std::uint8_t> readFile(const std::string &path)
-{
-    std::FILE *file = openFile(path, RL_MODE("rb"));
+std::vector<std::uint8_t> readFile(const std::string& path) {
+    std::FILE* file = openFile(path, RL_MODE("rb"));
     if (file == nullptr) {
         throw UsageError("cannot read " + path);
     }
@@ -116,10 +97,9 @@ std::vector<std::uint8_t> readFile(const std::string &path)
 
 // Written beside the file, then moved over it: a failed write (a full disk)
 // leaves the file as it was.
-void writeFile(const std::string &path, const std::vector<std::uint8_t> &data)
-{
+void writeFile(const std::string& path, const std::vector<std::uint8_t>& data) {
     const std::string temporary = path + ".rlcore-tmp";
-    std::FILE *file = openFile(temporary, RL_MODE("wb"));
+    std::FILE* file = openFile(temporary, RL_MODE("wb"));
     if (file == nullptr) {
         throw UsageError("cannot write " + path);
     }
@@ -135,35 +115,34 @@ void writeFile(const std::string &path, const std::vector<std::uint8_t> &data)
     }
 }
 
-std::string jsonEscape(const std::string &value)
-{
+std::string jsonEscape(const std::string& value) {
     std::string out;
     out.reserve(value.size() + 2);
     for (const char character : value) {
         switch (character) {
-        case '"':
-            out += "\\\"";
-            break;
-        case '\\':
-            out += "\\\\";
-            break;
-        case '\n':
-            out += "\\n";
-            break;
-        case '\r':
-            out += "\\r";
-            break;
-        case '\t':
-            out += "\\t";
-            break;
-        default:
-            if (static_cast<unsigned char>(character) < 0x20) {
-                char escaped[8];
-                std::snprintf(escaped, sizeof escaped, "\\u%04x", static_cast<unsigned char>(character));
-                out += escaped;
-            } else {
-                out.push_back(character);
-            }
+            case '"':
+                out += "\\\"";
+                break;
+            case '\\':
+                out += "\\\\";
+                break;
+            case '\n':
+                out += "\\n";
+                break;
+            case '\r':
+                out += "\\r";
+                break;
+            case '\t':
+                out += "\\t";
+                break;
+            default:
+                if (static_cast<unsigned char>(character) < 0x20) {
+                    char escaped[8];
+                    std::snprintf(escaped, sizeof escaped, "\\u%04x", static_cast<unsigned char>(character));
+                    out += escaped;
+                } else {
+                    out.push_back(character);
+                }
         }
     }
     return out;
@@ -171,15 +150,12 @@ std::string jsonEscape(const std::string &value)
 
 // Reports what was written so a caller can log or check it without re-reading
 // the file.
-void reportWritten(const std::string &path, std::size_t bytes)
-{
+void reportWritten(const std::string& path, std::size_t bytes) {
     std::cout << "{\"schema\": \"retrolarium.codec-result\", \"schema_version\": 1, "
-              << "\"output\": \"" << jsonEscape(path) << "\", \"size\": " << bytes
-              << "}\n";
+              << "\"output\": \"" << jsonEscape(path) << "\", \"size\": " << bytes << "}\n";
 }
 
-int nemesisCommand(const std::vector<std::string> &arguments)
-{
+int nemesisCommand(const std::vector<std::string>& arguments) {
     if (arguments.size() == 4 && arguments[1] == "decompress") {
         const auto out = retrolarium::core::nemesisDecompress(readFile(arguments[2]));
         writeFile(arguments[3], out);
@@ -187,30 +163,27 @@ int nemesisCommand(const std::vector<std::string> &arguments)
         return 0;
     }
     if (arguments.size() == 5 && arguments[1] == "compress") {
-        const auto out = retrolarium::core::nemesisCompress(
-            readFile(arguments[2]), readFile(arguments[3]));
+        const auto out = retrolarium::core::nemesisCompress(readFile(arguments[2]), readFile(arguments[3]));
         writeFile(arguments[4], out);
         reportWritten(arguments[4], out.size());
         return 0;
     }
-    throw UsageError("nemesis takes 'decompress <in> <out>' or "
-                     "'compress <plain> <reference> <out>'");
+    throw UsageError(
+        "nemesis takes 'decompress <in> <out>' or "
+        "'compress <plain> <reference> <out>'");
 }
 
-int enigmaCommand(const std::vector<std::string> &arguments)
-{
-    if ((arguments.size() == 4 || arguments.size() == 5)
-        && arguments[1] == "decompress") {
+int enigmaCommand(const std::vector<std::string>& arguments) {
+    if ((arguments.size() == 4 || arguments.size() == 5) && arguments[1] == "decompress") {
         int baseTile = 0;
         if (arguments.size() == 5) {
             try {
                 baseTile = std::stoi(arguments[4], nullptr, 0);
-            } catch (const std::exception &) {
+            } catch (const std::exception&) {
                 throw UsageError("base-tile must be an integer");
             }
         }
-        const auto out =
-            retrolarium::core::enigmaDecompress(readFile(arguments[2]), baseTile);
+        const auto out = retrolarium::core::enigmaDecompress(readFile(arguments[2]), baseTile);
         writeFile(arguments[3], out);
         reportWritten(arguments[3], out.size());
         return 0;
@@ -221,19 +194,19 @@ int enigmaCommand(const std::vector<std::string> &arguments)
         reportWritten(arguments[3], out.size());
         return 0;
     }
-    throw UsageError("enigma takes 'decompress <in> <out> [base-tile]' or "
-                     "'compress <plain> <out>'");
+    throw UsageError(
+        "enigma takes 'decompress <in> <out> [base-tile]' or "
+        "'compress <plain> <out>'");
 }
 
-} // namespace
+}  // namespace
 
 // The arguments as UTF-8: on Windows argv is in the system's code page, which
 // loses any character outside it, so the wide command line is read instead.
-std::vector<std::string> utf8Arguments(int argc, char *argv[])
-{
+std::vector<std::string> utf8Arguments(int argc, char* argv[]) {
 #ifdef _WIN32
     int count = 0;
-    wchar_t **wide = CommandLineToArgvW(GetCommandLineW(), &count);
+    wchar_t** wide = CommandLineToArgvW(GetCommandLineW(), &count);
     if (wide != nullptr) {
         std::vector<std::string> result;
         for (int index = 1; index < count; ++index) {
@@ -251,8 +224,7 @@ std::vector<std::string> utf8Arguments(int argc, char *argv[])
     return {argv + 1, argv + argc};
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char* argv[]) {
     const std::vector<std::string> arguments = utf8Arguments(argc, argv);
     if (arguments.empty() || arguments[0] == "-h" || arguments[0] == "--help") {
         printUsage(arguments.empty() ? std::cerr : std::cout);
@@ -270,13 +242,13 @@ int main(int argc, char *argv[])
         if (arguments[0] == "enigma") {
             return enigmaCommand(arguments);
         }
-    } catch (const UsageError &error) {
+    } catch (const UsageError& error) {
         std::cerr << "rlcore: " << error.what() << '\n';
         return 2;
-    } catch (const std::runtime_error &error) {
+    } catch (const std::runtime_error& error) {
         std::cerr << "rlcore: " << error.what() << '\n';
         return 1;
-    } catch (const std::exception &error) {
+    } catch (const std::exception& error) {
         // Out of memory and the like: still one line and a failure, not an abort.
         std::cerr << "rlcore: " << error.what() << '\n';
         return 1;

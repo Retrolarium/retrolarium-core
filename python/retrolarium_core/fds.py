@@ -69,9 +69,7 @@ def parse_fds_side(image: bytes) -> tuple[FdsFileRecord, ...]:
     return tuple(records)
 
 
-def _selected_records(
-    image: bytes, record_ids: Iterable[int]
-) -> tuple[FdsFileRecord, ...]:
+def _selected_records(image: bytes, record_ids: Iterable[int]) -> tuple[FdsFileRecord, ...]:
     identifiers = tuple(record_ids)
     if not identifiers or len(set(identifiers)) != len(identifiers):
         raise FdsError("FDS payload record IDs must be non-empty and unique")
@@ -87,8 +85,7 @@ def _selected_records(
 
 def fds_payload(image: bytes, record_ids: Iterable[int]) -> bytes:
     return b"".join(
-        image[record.data_offset:record.data_offset + record.size]
-        for record in _selected_records(image, record_ids)
+        image[record.data_offset : record.data_offset + record.size] for record in _selected_records(image, record_ids)
     )
 
 
@@ -109,9 +106,7 @@ def fds_payload_ranges(
         or size <= 0
         or offset + size > total_size
     ):
-        raise FdsError(
-            f"FDS payload range {offset}+{size} exceeds {total_size} bytes"
-        )
+        raise FdsError(f"FDS payload range {offset}+{size} exceeds {total_size} bytes")
     result = []
     logical_start = 0
     requested_end = offset + size
@@ -131,19 +126,15 @@ def fds_payload_ranges(
     return tuple(result)
 
 
-def replace_fds_payload(
-    image: bytes, record_ids: Iterable[int], payload: bytes
-) -> bytes:
+def replace_fds_payload(image: bytes, record_ids: Iterable[int], payload: bytes) -> bytes:
     selected = _selected_records(image, record_ids)
     expected_size = sum(record.size for record in selected)
     if len(payload) != expected_size:
-        raise FdsError(
-            f"FDS replacement payload is {len(payload)} bytes, expected {expected_size}"
-        )
+        raise FdsError(f"FDS replacement payload is {len(payload)} bytes, expected {expected_size}")
     result = bytearray(image)
     position = 0
     for record in selected:
         end = position + record.size
-        result[record.data_offset:record.data_offset + record.size] = payload[position:end]
+        result[record.data_offset : record.data_offset + record.size] = payload[position:end]
         position = end
     return bytes(result)

@@ -3,6 +3,7 @@
 Bundled binaries (rlcore, the kit's assemblers) are kept per host under these
 names.
 """
+
 from __future__ import annotations
 
 import platform

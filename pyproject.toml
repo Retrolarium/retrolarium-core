@@ -11,7 +11,7 @@ version = "0.5.0"
 description = "ROM containers, the disassembly manifest contract and the rlcore bridge for Retrolarium"
 readme = "README.md"
 requires-python = ">=3.11"
-license = {text = "GPL-3.0-or-later"}
+license = { text = "GPL-3.0-or-later" }
 classifiers = [
   "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
 ]

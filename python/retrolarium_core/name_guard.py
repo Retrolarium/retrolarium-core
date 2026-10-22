@@ -43,9 +43,7 @@ TABLES_ALLOWLIST = "name_guard_tables.txt"
 # between their words (a title may run over two string literals or comment
 # lines).
 TITLES = ("super mario bros",)
-_TITLE_RES = tuple(
-    re.compile(r"[\s_.\-\"'#/*]*".join(title.split()), re.IGNORECASE) for title in TITLES
-)
+_TITLE_RES = tuple(re.compile(r"[\s_.\-\"'#/*]*".join(title.split()), re.IGNORECASE) for title in TITLES)
 
 
 def strip_titles(text: str) -> str:
@@ -60,14 +58,52 @@ _PART_RE = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|[0-9]+")
 # A literal number in source or JSON: 0x1F, $1F, 31, 31.5.
 _NUMBER = r"(?:0[xX][0-9A-Fa-f]+|\$[0-9A-Fa-f]+|-?[0-9]+(?:\.[0-9]+)?)[uUlL]*"
 _NUMBER_RUN_RE = re.compile(rf"{_NUMBER}(?:\s*,\s*{_NUMBER})+")
-TEXT_SUFFIXES = frozenset({
-    ".c", ".cc", ".cpp", ".h", ".hpp", ".py", ".lua", ".js", ".ts", ".json", ".toml",
-    ".md", ".txt", ".cmake", ".ps1", ".sh", ".yml", ".yaml", ".html", ".css", ".qml",
-    ".ui", ".xml", ".cfg", ".ini", ".asm", ".inc", ".s", ".rlj", ".tsv",
-    # The disassembler's Ghidra scripts, patches and 68000 sources; the
-    # Studio's resource scripts, desktop entry, manifest and icons.
-    ".java", ".patch", ".diff", ".68k", ".rc", ".in", ".qrc", ".desktop", ".manifest", ".svg",
-})
+TEXT_SUFFIXES = frozenset(
+    {
+        ".c",
+        ".cc",
+        ".cpp",
+        ".h",
+        ".hpp",
+        ".py",
+        ".lua",
+        ".js",
+        ".ts",
+        ".json",
+        ".toml",
+        ".md",
+        ".txt",
+        ".cmake",
+        ".ps1",
+        ".sh",
+        ".yml",
+        ".yaml",
+        ".html",
+        ".css",
+        ".qml",
+        ".ui",
+        ".xml",
+        ".cfg",
+        ".ini",
+        ".asm",
+        ".inc",
+        ".s",
+        ".rlj",
+        ".tsv",
+        # The disassembler's Ghidra scripts, patches and 68000 sources; the
+        # Studio's resource scripts, desktop entry, manifest and icons.
+        ".java",
+        ".patch",
+        ".diff",
+        ".68k",
+        ".rc",
+        ".in",
+        ".qrc",
+        ".desktop",
+        ".manifest",
+        ".svg",
+    }
+)
 TEXT_NAMES = frozenset({"CMakeLists.txt", "Makefile", "Dockerfile", ".gitignore", ".gitattributes"})
 TABLE_SUFFIXES = frozenset({".c", ".cc", ".cpp", ".h", ".hpp", ".py", ".lua", ".js", ".json"})
 
@@ -121,8 +157,7 @@ class Guard:
                 if start + length > len(tokens):
                     break
                 phrase = " ".join(word for _line, word in tokens[start : start + length])
-                if any(hashlib.sha256(form.encode("utf-8")).hexdigest() in self.digests
-                       for form in _singulars(phrase)):
+                if any(hashlib.sha256(form.encode("utf-8")).hexdigest() in self.digests for form in _singulars(phrase)):
                     found.append((tokens[start][0], phrase))
         return found
 
@@ -154,7 +189,9 @@ def tracked_files(root: Path) -> list[str]:
     """The files Git tracks under root (relative, forward slashes)."""
     listed = subprocess.run(
         ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", "."],
-        cwd=root, capture_output=True, check=True,
+        cwd=root,
+        capture_output=True,
+        check=True,
     )
     return sorted(raw.decode("utf-8") for raw in listed.stdout.split(b"\0") if raw)
 
@@ -210,8 +247,11 @@ def check_tables(root: Path, minimum: int = 24) -> list[Finding]:
     allowed = table_allowlist(root)
     findings: list[Finding] = []
     for relative in tracked_files(root):
-        if (Path(relative).suffix.lower() not in TABLE_SUFFIXES or relative in allowed
-                or "third_party" in Path(relative).parts):
+        if (
+            Path(relative).suffix.lower() not in TABLE_SUFFIXES
+            or relative in allowed
+            or "third_party" in Path(relative).parts
+        ):
             continue
         text = _read(root, relative)
         if text is None:

@@ -86,19 +86,13 @@ class SnesImage:
 
     @property
     def reset_vector(self) -> SnesVector:
-        return next(
-            vector
-            for vector in self.vector_table
-            if vector.mode == "emulation" and vector.name == "reset"
-        )
+        return next(vector for vector in self.vector_table if vector.mode == "emulation" and vector.name == "reset")
 
     @property
     def regions(self) -> tuple[SnesRegion, ...]:
         regions: list[SnesRegion] = []
         if self.copier_header:
-            regions.append(
-                _region("copier_header", 0, None, self.copier_header)
-            )
+            regions.append(_region("copier_header", 0, None, self.copier_header))
         container_base = self.copier_header_size
         if self.header_offset:
             regions.append(
@@ -221,9 +215,7 @@ def _region(
     rom_offset: int | None,
     payload: bytes,
 ) -> SnesRegion:
-    return SnesRegion(
-        name, container_offset, rom_offset, len(payload), _digest(payload)
-    )
+    return SnesRegion(name, container_offset, rom_offset, len(payload), _digest(payload))
 
 
 def _u16le(data: bytes, offset: int) -> int:
@@ -262,9 +254,7 @@ def _header_score(data: bytes, offset: int) -> int:
         return -1000
     header = data[offset : offset + HEADER_SIZE]
     map_mode = header[0x15]
-    expected = (
-        "lorom" if offset == LOROM_HEADER_OFFSET else "hirom"
-    )
+    expected = "lorom" if offset == LOROM_HEADER_OFFSET else "hirom"
     actual = STANDARD_MAP_MODES.get(map_mode, (None, None))[0]
     if map_mode in ENHANCEMENT_MAP_MODES or map_mode in EX_LOROM_MAP_MODES:
         actual = "lorom"
@@ -295,9 +285,7 @@ def _select_header(data: bytes) -> int:
         raise SnesError("ROM is too small to contain a LoROM or HiROM header")
     ordered = sorted(scores.items(), key=lambda item: item[1], reverse=True)
     if ordered[0][1] < 10:
-        raise SnesError(
-            "no plausible SNES internal header at LoROM or HiROM offset"
-        )
+        raise SnesError("no plausible SNES internal header at LoROM or HiROM offset")
     if len(ordered) > 1 and ordered[0][1] == ordered[1][1]:
         raise SnesError("LoROM and HiROM header candidates are ambiguous")
     return ordered[0][0]
@@ -307,30 +295,20 @@ def _parse_header(data: bytes, offset: int) -> SnesHeader:
     raw = data[offset : offset + HEADER_SIZE]
     map_mode_byte = raw[0x15]
     if map_mode_byte in EX_HIROM_MAP_MODES:
-        raise SnesError(
-            f"ExHiROM map mode 0x{map_mode_byte:02X} is not supported by v1"
-        )
+        raise SnesError(f"ExHiROM map mode 0x{map_mode_byte:02X} is not supported by v1")
     if map_mode_byte in EX_LOROM_MAP_MODES:
-        raise SnesError(
-            f"ExLoROM map mode 0x{map_mode_byte:02X} is not supported by v1"
-        )
+        raise SnesError(f"ExLoROM map mode 0x{map_mode_byte:02X} is not supported by v1")
     if map_mode_byte in ENHANCEMENT_MAP_MODES:
-        raise SnesError(
-            f"enhancement-chip map mode 0x{map_mode_byte:02X} is not supported"
-        )
+        raise SnesError(f"enhancement-chip map mode 0x{map_mode_byte:02X} is not supported")
     mapping = STANDARD_MAP_MODES.get(map_mode_byte)
     if mapping is None:
         raise SnesError(f"unsupported SNES map mode 0x{map_mode_byte:02X}")
     expected = "lorom" if offset == LOROM_HEADER_OFFSET else "hirom"
     if mapping[0] != expected:
-        raise SnesError(
-            f"header location implies {expected}, map byte implies {mapping[0]}"
-        )
+        raise SnesError(f"header location implies {expected}, map byte implies {mapping[0]}")
     chipset = raw[0x16]
     if chipset not in PLAIN_CHIPSETS:
-        raise SnesError(
-            f"enhancement chipset 0x{chipset:02X} is not supported by v1"
-        )
+        raise SnesError(f"enhancement chipset 0x{chipset:02X} is not supported by v1")
     return SnesHeader(
         title=_text(raw, 0, 21),
         map_mode_byte=map_mode_byte,
@@ -466,9 +444,7 @@ def rom_offset_aliases(image: SnesImage, offset: int) -> tuple[int, ...]:
     return tuple(sorted(aliases))
 
 
-def _parse_vectors(
-    data: bytes, image_header_offset: int, map_mode: str
-) -> tuple[SnesVector, ...]:
+def _parse_vectors(data: bytes, image_header_offset: int, map_mode: str) -> tuple[SnesVector, ...]:
     vectors: list[SnesVector] = []
     for mode, start, names in (
         ("native", 0x20, NATIVE_VECTOR_NAMES),
@@ -484,9 +460,7 @@ def _parse_vectors(
                     rom_offset = _mirror_offset(linear, len(data))
                 except SnesError:
                     cpu_address = None
-            vectors.append(
-                SnesVector(mode, index, name, raw, cpu_address, rom_offset)
-            )
+            vectors.append(SnesVector(mode, index, name, raw, cpu_address, rom_offset))
     return tuple(vectors)
 
 
@@ -500,27 +474,18 @@ def parse_snes(container_data: bytes, source: Path | None = None) -> SnesImage:
         data = container_data
     else:
         raise SnesError(
-            f"container size {len(container_data)} is not a 32 KiB ROM multiple "
-            "with an optional 512-byte copier header"
+            f"container size {len(container_data)} is not a 32 KiB ROM multiple with an optional 512-byte copier header"
         )
     if len(data) < 0x8000:
         raise SnesError("SNES ROM must contain at least one 32 KiB bank")
     if len(data) > MAX_STANDARD_ROM_SIZE:
-        raise SnesError(
-            "ROM exceeds 4 MiB; ExLoROM/ExHiROM are not supported by v1"
-        )
+        raise SnesError("ROM exceeds 4 MiB; ExLoROM/ExHiROM are not supported by v1")
     header_offset = _select_header(data)
     header = _parse_header(data, header_offset)
     vectors = _parse_vectors(data, header_offset, header.map_mode)
-    reset = next(
-        vector
-        for vector in vectors
-        if vector.mode == "emulation" and vector.name == "reset"
-    )
+    reset = next(vector for vector in vectors if vector.mode == "emulation" and vector.name == "reset")
     if reset.cpu_address is None or reset.rom_offset is None:
-        raise SnesError(
-            f"emulation RESET vector 0x{reset.raw_value:04X} is not backed by ROM"
-        )
+        raise SnesError(f"emulation RESET vector 0x{reset.raw_value:04X} is not backed by ROM")
     computed = cartridge_checksum(data)
     pair_valid = (header.checksum ^ header.checksum_complement) == 0xFFFF
     if header.checksum == 0 and header.checksum_complement == 0:
@@ -533,14 +498,10 @@ def parse_snes(container_data: bytes, source: Path | None = None) -> SnesImage:
         checksum_status = "mismatch"
     warnings: list[str] = []
     if header.declared_rom_size != len(data):
-        warnings.append(
-            f"declared ROM size {header.declared_rom_size} differs from "
-            f"file-backed size {len(data)}"
-        )
+        warnings.append(f"declared ROM size {header.declared_rom_size} differs from file-backed size {len(data)}")
     if checksum_status != "valid":
         warnings.append(
-            f"cartridge checksum status is {checksum_status}; stored "
-            f"0x{header.checksum:04X}, computed 0x{computed:04X}"
+            f"cartridge checksum status is {checksum_status}; stored 0x{header.checksum:04X}, computed 0x{computed:04X}"
         )
     return SnesImage(
         source=source,

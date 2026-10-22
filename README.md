@@ -3,8 +3,8 @@
 The part of Retrolarium that Studio, Kit and Disassembler share. The core has
 two halves: a C++ library with the `rlcore` tool, which holds the Mega Drive
 compressions (Nemesis, Enigma), and the Python layer `python/retrolarium_core`,
-which holds the containers, the manifest contracts and the repository guards.
-A format is implemented once: in C++ where the Studio needs it too, otherwise in
+which holds the containers, the manifest contracts and the repository guards. A
+format is implemented once: in C++ where the Studio needs it too, otherwise in
 Python.
 
 ```text
@@ -89,15 +89,15 @@ would only be tested against itself.
 `python/retrolarium_core` holds what both the kit and the disassembler need,
 without any game semantics:
 
-| Module      | Purpose                                                                 |
-| ----------- | ----------------------------------------------------------------------- |
-| `ines`      | the iNES 1.0 container and mapper profiles (`profiles/`)                |
-| `fds`       | a Famicom Disk System side: blocks, files, payload ranges               |
-| `megadrive` | a Mega Drive cartridge: header, checksum, vectors                       |
-| `snes`      | a LoROM/HiROM cartridge: header, copier prefix, bus windows             |
-| `contracts` | the contract of a disassembled project's manifest (`schemas/`)          |
-| `tool`      | finding and running `rlcore`                                            |
-| `host`      | stable names for the host platform (`windows-x86_64`)                   |
+| Module      | Purpose                                                        |
+| ----------- | -------------------------------------------------------------- |
+| `ines`      | the iNES 1.0 container and mapper profiles (`profiles/`)       |
+| `fds`       | a Famicom Disk System side: blocks, files, payload ranges      |
+| `megadrive` | a Mega Drive cartridge: header, checksum, vectors              |
+| `snes`      | a LoROM/HiROM cartridge: header, copier prefix, bus windows    |
+| `contracts` | the contract of a disassembled project's manifest (`schemas/`) |
+| `tool`      | finding and running `rlcore`                                   |
+| `host`      | stable names for the host platform (`windows-x86_64`)          |
 
 The package installs as `retrolarium-core` (`pyproject.toml` at the root). The
 kit and the disassembler find it on their own when run from source: in a

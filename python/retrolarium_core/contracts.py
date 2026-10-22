@@ -45,9 +45,7 @@ def _validate_build_runner(
         raise ContractError(f"unsupported build runner: {runner!r}")
     argv = build.get("argv")
     if argv is not None and (
-        not isinstance(argv, list)
-        or not argv
-        or any(not isinstance(value, str) or not value for value in argv)
+        not isinstance(argv, list) or not argv or any(not isinstance(value, str) or not value for value in argv)
     ):
         raise ContractError("build argv must be a non-empty string array")
     if runner != "retrolarium-kit":
@@ -55,11 +53,7 @@ def _validate_build_runner(
     if build.get("toolchain_suite") != suite or build.get("recipe") != recipe:
         raise ContractError("bundled build suite or recipe does not match the platform")
     project_directory = artifact_path(root, build.get("project_directory"))
-    fields = (
-        ("source", "linker_config", "object", "map")
-        if recipe == "ca65-ld65-v1"
-        else ("source", "object")
-    )
+    fields = ("source", "linker_config", "object", "map") if recipe == "ca65-ld65-v1" else ("source", "object")
     paths = {field: artifact_path(project_directory, build.get(field)).resolve() for field in fields}
     output = artifact_path(root, build.get("output"))
     try:
@@ -94,9 +88,7 @@ def _validate_hashed_file(root: Path, record: dict[str, Any], name: str) -> Path
     return path
 
 
-def validate_nes_disassembly_manifest(
-    manifest: dict[str, Any], root: Path, *, verify_rebuilt: bool = True
-) -> None:
+def validate_nes_disassembly_manifest(manifest: dict[str, Any], root: Path, *, verify_rebuilt: bool = True) -> None:
     if manifest.get("schema") != "retrolarium.nes.disassembly":
         raise ContractError("unsupported disassembly manifest schema")
     if manifest.get("schema_version") != 1:
@@ -117,14 +109,22 @@ def validate_nes_disassembly_manifest(
         raise ContractError("backend.banks must be a non-empty list")
     for index, value in enumerate(banks):
         bank = _mapping(value, f"backend.banks[{index}]")
-        _validate_hashed_file(analysis_root, {
-            "path": bank.get("analysis_input"),
-            "sha256": bank.get("analysis_input_sha256"),
-        }, f"bank {index} analysis input")
-        _validate_hashed_file(analysis_root, {
-            "path": bank.get("facts"),
-            "sha256": bank.get("facts_sha256"),
-        }, f"bank {index} facts")
+        _validate_hashed_file(
+            analysis_root,
+            {
+                "path": bank.get("analysis_input"),
+                "sha256": bank.get("analysis_input_sha256"),
+            },
+            f"bank {index} analysis input",
+        )
+        _validate_hashed_file(
+            analysis_root,
+            {
+                "path": bank.get("facts"),
+                "sha256": bank.get("facts_sha256"),
+            },
+            f"bank {index} facts",
+        )
 
     facts = _mapping(manifest.get("facts"), "facts")
     symbols = _mapping(manifest.get("symbols"), "symbols")
@@ -157,13 +157,9 @@ def validate_nes_disassembly_manifest(
     project_directory = artifact_path(root, build.get("project_directory"))
     if not project_directory.is_dir():
         raise ContractError("build project directory does not exist")
-    _validate_build_runner(
-        root, build, suite="nes", recipe="ca65-ld65-v1"
-    )
+    _validate_build_runner(root, build, suite="nes", recipe="ca65-ld65-v1")
     operation_artifact = build.get("output")
-    if not (
-        operation_artifact == verify.get("artifact") == launch.get("artifact")
-    ):
+    if not (operation_artifact == verify.get("artifact") == launch.get("artifact")):
         raise ContractError("build, verify and launch artifacts differ")
     artifact_path(root, operation_artifact)
     if verify.get("expected_sha256") != input_sha256:
@@ -195,10 +191,16 @@ def validate_nes_disassembly_manifest(
             raise ContractError(f"asset does not exist: {path}")
         offset = item.get("asset_file_offset")
         size = item.get("size")
-        if (not isinstance(offset, int) or not isinstance(size, int) or isinstance(offset, bool)
-                or isinstance(size, bool) or offset < 0 or size < 0):
+        if (
+            not isinstance(offset, int)
+            or not isinstance(size, int)
+            or isinstance(offset, bool)
+            or isinstance(size, bool)
+            or offset < 0
+            or size < 0
+        ):
             raise ContractError(f"asset {identifier} has invalid slice coordinates")
-        payload = path.read_bytes()[offset:offset + size]
+        payload = path.read_bytes()[offset : offset + size]
         actual = hashlib.sha256(payload).hexdigest()
         if len(payload) != size or actual != item.get("sha256"):
             raise ContractError(f"asset {identifier} slice does not match manifest")
@@ -211,11 +213,7 @@ def validate_nes_disassembly_manifest(
         rebuilt_sha256 = _sha256(rebuilt)
         if rebuilt_sha256 != verification.get("rebuilt_sha256"):
             raise ContractError("rebuilt ROM no longer matches exact verification")
-        if not (
-            verification.get("original_sha256")
-            == verification.get("rebuilt_sha256")
-            == input_sha256
-        ):
+        if not (verification.get("original_sha256") == verification.get("rebuilt_sha256") == input_sha256):
             raise ContractError("exact verification does not match manifest input")
         if rebuilt.stat().st_size != input_size:
             raise ContractError("rebuilt ROM size does not match manifest input")
@@ -239,14 +237,9 @@ def _read_json_artifact(path: Path, name: str) -> dict[str, Any]:
     return _mapping(value, name)
 
 
-def _validate_megadrive_assets(
-    manifest: dict[str, Any], root: Path, input_size: int
-) -> None:
+def _validate_megadrive_assets(manifest: dict[str, Any], root: Path, input_size: int) -> None:
     assets = _mapping(manifest.get("assets"), "assets")
-    if (
-        assets.get("schema") != "retrolarium.assets"
-        or assets.get("schema_version") != 1
-    ):
+    if assets.get("schema") != "retrolarium.assets" or assets.get("schema_version") != 1:
         raise ContractError("unsupported Mega Drive asset manifest")
     items = assets.get("items")
     if not isinstance(items, list) or not items:
@@ -286,12 +279,14 @@ def _validate_megadrive_assets(
             shared_sources.append((offset, size, path))
             for span in emission:
                 span = _mapping(span, f"asset {identifier} emission span")
-                at, source, length = (span.get(key) for key in
-                                      ("rom_file_offset", "file_offset", "size"))
-                if (not all(isinstance(value, int) and not isinstance(value, bool)
-                            for value in (at, source, length))
-                        or source < 0 or length <= 0 or source + length > size
-                        or at != offset + source):
+                at, source, length = (span.get(key) for key in ("rom_file_offset", "file_offset", "size"))
+                if (
+                    not all(isinstance(value, int) and not isinstance(value, bool) for value in (at, source, length))
+                    or source < 0
+                    or length <= 0
+                    or source + length > size
+                    or at != offset + source
+                ):
                     raise ContractError(f"asset {identifier} has invalid ROM emission coordinates")
                 occupied.append((at, at + length))
                 emitted_files.append((at, at + length, path, source))
@@ -307,10 +302,10 @@ def _validate_megadrive_assets(
             left, right = max(offset, start), min(offset + size, end)
             if left >= right:
                 continue
-            owner_bytes = owner.read_bytes()[source + left - start:source + right - start]
-            if payload[left - offset:right - offset] != owner_bytes:
+            owner_bytes = owner.read_bytes()[source + left - start : source + right - start]
+            if payload[left - offset : right - offset] != owner_bytes:
                 raise ContractError("shared Z80 source bytes disagree with ROM emission owner")
-            covered[left - offset:right - offset] = b"\x01" * (right - left)
+            covered[left - offset : right - offset] = b"\x01" * (right - left)
         if not all(covered):
             raise ContractError("shared Z80 source bytes have no ROM emission owner")
 
@@ -329,10 +324,7 @@ def validate_megadrive_disassembly_manifest(
         raise ContractError("unsupported Mega Drive project mode")
 
     input_record = _mapping(manifest.get("input"), "input")
-    if (
-        input_record.get("schema") != "retrolarium.megadrive.image"
-        or input_record.get("schema_version") != 1
-    ):
+    if input_record.get("schema") != "retrolarium.megadrive.image" or input_record.get("schema_version") != 1:
         raise ContractError("unsupported Mega Drive input image contract")
     input_sha256 = _require_sha256(input_record.get("sha256"), "input.sha256")
     input_size = input_record.get("size")
@@ -397,9 +389,7 @@ def validate_megadrive_disassembly_manifest(
                 raise ContractError("m68k analysis input differs from cartridge image")
         else:
             derivation = program.get("derived_from")
-            edges_for_program = (
-                [derivation] if isinstance(derivation, str) else derivation
-            )
+            edges_for_program = [derivation] if isinstance(derivation, str) else derivation
             if (
                 not isinstance(edges_for_program, list)
                 or not edges_for_program
@@ -442,9 +432,7 @@ def validate_megadrive_disassembly_manifest(
         for value in programs
         if isinstance(value, dict) and value.get("address_space") == "m68k"
     )
-    cartridge = artifact_path(
-        analysis_root, m68k_program.get("analysis_input")
-    ).read_bytes()
+    cartridge = artifact_path(analysis_root, m68k_program.get("analysis_input")).read_bytes()
     for index, value in enumerate(edges):
         edge = _mapping(value, f"cross_cpu_evidence.edges[{index}]")
         edge_id = edge.get("id")
@@ -481,7 +469,7 @@ def validate_megadrive_disassembly_manifest(
             {"path": edge.get("payload"), "sha256": edge.get("payload_sha256")},
             f"cross-CPU edge {edge_id} payload",
         ).read_bytes()
-        if start < 0 or end >= len(cartridge) or payload != cartridge[start:end + 1]:
+        if start < 0 or end >= len(cartridge) or payload != cartridge[start : end + 1]:
             raise ContractError(f"cross-CPU edge {edge_id} payload is not its ROM slice")
     if derived_edges != edge_ids:
         raise ContractError("Z80 programs and cross-CPU evidence do not correspond")
@@ -506,42 +494,33 @@ def validate_megadrive_disassembly_manifest(
         "raw_bytes",
     )
     padding_bytes = coverage.get("padding_bytes", 0)
-    if coverage.get("rom_bytes") != input_size or any(
-        not isinstance(coverage.get(name), int) or coverage[name] < 0 for name in categories
-    ) or not isinstance(padding_bytes, int) or padding_bytes < 0 or (
-        sum(coverage[name] for name in categories) + padding_bytes != input_size
+    if (
+        coverage.get("rom_bytes") != input_size
+        or any(not isinstance(coverage.get(name), int) or coverage[name] < 0 for name in categories)
+        or not isinstance(padding_bytes, int)
+        or padding_bytes < 0
+        or (sum(coverage[name] for name in categories) + padding_bytes != input_size)
     ):
         raise ContractError("source coverage does not partition the complete ROM")
     symbolic_bytes = coverage.get("symbolic_instruction_bytes", 0)
-    if (
-        not isinstance(symbolic_bytes, int)
-        or symbolic_bytes < 0
-        or symbolic_bytes > coverage["instruction_bytes"]
-    ):
+    if not isinstance(symbolic_bytes, int) or symbolic_bytes < 0 or symbolic_bytes > coverage["instruction_bytes"]:
         raise ContractError("symbolic instruction bytes exceed analyzed instruction bytes")
 
     operations = _mapping(manifest.get("operations"), "operations")
     build = _mapping(operations.get("build"), "operations.build")
     verify = _mapping(operations.get("verify"), "operations.verify")
     launch = _mapping(operations.get("launch"), "operations.launch")
-    if (
-        build.get("id") != "retrolarium.project.build"
-        or build.get("runner") not in {"docker", "retrolarium-kit"}
-    ):
+    if build.get("id") != "retrolarium.project.build" or build.get("runner") not in {"docker", "retrolarium-kit"}:
         raise ContractError("unsupported Mega Drive build operation")
     argv = build.get("argv")
     if build.get("runner") == "docker" and (
-        not isinstance(argv, list)
-        or not argv
-        or any(not isinstance(value, str) or not value for value in argv)
+        not isinstance(argv, list) or not argv or any(not isinstance(value, str) or not value for value in argv)
     ):
         raise ContractError("build argv must be a non-empty string array")
     project_directory = artifact_path(root, build.get("project_directory"))
     if not project_directory.is_dir():
         raise ContractError("build project directory does not exist")
-    _validate_build_runner(
-        root, build, suite="megadrive", recipe="asl-p2bin-v1"
-    )
+    _validate_build_runner(root, build, suite="megadrive", recipe="asl-p2bin-v1")
     if not (build.get("output") == verify.get("artifact") == launch.get("artifact")):
         raise ContractError("build, verify and launch artifacts differ")
     artifact_path(root, build.get("output"))
@@ -574,9 +553,7 @@ def validate_megadrive_disassembly_manifest(
             raise ContractError("rebuilt Mega Drive ROM no longer matches exact verification")
 
 
-def validate_snes_disassembly_manifest(
-    manifest: dict[str, Any], root: Path, *, verify_rebuilt: bool = True
-) -> None:
+def validate_snes_disassembly_manifest(manifest: dict[str, Any], root: Path, *, verify_rebuilt: bool = True) -> None:
     """Validate the public v1 multi-program plain LoROM/HiROM contract."""
     if manifest.get("schema") != "retrolarium.snes.disassembly":
         raise ContractError("unsupported SNES disassembly manifest schema")
@@ -627,11 +604,7 @@ def validate_snes_disassembly_manifest(
     ):
         raise ContractError("SNES analysis input differs from project input")
     programs = analysis.get("programs")
-    if (
-        not isinstance(programs, list)
-        or not programs
-        or manifest["analysis"].get("program_count") != len(programs)
-    ):
+    if not isinstance(programs, list) or not programs or manifest["analysis"].get("program_count") != len(programs):
         raise ContractError("SNES analysis program count is invalid")
     analysis_root = analysis_path.parent
     cpu_ids: set[str] = set()
@@ -761,7 +734,7 @@ def validate_snes_disassembly_manifest(
             {"path": edge.get("payload"), "sha256": edge.get("payload_sha256")},
             f"SNES cross-CPU edge {edge_id} payload",
         ).read_bytes()
-        if payload != main_payload[physical_start:physical_end + 1]:
+        if payload != main_payload[physical_start : physical_end + 1]:
             raise ContractError(f"SNES cross-CPU edge {edge_id} payload is not its ROM slice")
         edge_ids.add(edge_id)
     if derived_edges != edge_ids:
@@ -798,8 +771,11 @@ def validate_snes_disassembly_manifest(
     _validate_hashed_file(root, _mapping(source.get("emission"), "source.emission"), "emission")
     coverage = _mapping(source.get("coverage"), "source.coverage")
     categories = (
-        "instruction_bytes", "instruction_fallback_bytes", "pointer_bytes",
-        "header_bytes", "raw_bytes",
+        "instruction_bytes",
+        "instruction_fallback_bytes",
+        "pointer_bytes",
+        "header_bytes",
+        "raw_bytes",
     )
     if (
         coverage.get("rom_bytes") != rom_size
@@ -830,9 +806,7 @@ def validate_snes_disassembly_manifest(
         or launch.get("supported_modes") != ["interactive-plan", "smoke"]
     ):
         raise ContractError("invalid SNES project operation contract")
-    _validate_build_runner(
-        root, build, suite="nes", recipe="ca65-ld65-v1"
-    )
+    _validate_build_runner(root, build, suite="nes", recipe="ca65-ld65-v1")
 
     verification = _mapping(manifest.get("verification"), "verification")
     if verify_rebuilt and verification.get("status") == "exact":
@@ -847,35 +821,23 @@ def validate_snes_disassembly_manifest(
             raise ContractError("rebuilt SNES ROM no longer matches exact verification")
 
 
-def validate_disassembly_manifest(
-    manifest: dict[str, Any], root: Path, *, verify_rebuilt: bool = True
-) -> None:
+def validate_disassembly_manifest(manifest: dict[str, Any], root: Path, *, verify_rebuilt: bool = True) -> None:
     schema = manifest.get("schema")
     if schema == "retrolarium.nes.disassembly":
-        validate_nes_disassembly_manifest(
-            manifest, root, verify_rebuilt=verify_rebuilt
-        )
+        validate_nes_disassembly_manifest(manifest, root, verify_rebuilt=verify_rebuilt)
     elif schema == "retrolarium.megadrive.disassembly":
-        validate_megadrive_disassembly_manifest(
-            manifest, root, verify_rebuilt=verify_rebuilt
-        )
+        validate_megadrive_disassembly_manifest(manifest, root, verify_rebuilt=verify_rebuilt)
     elif schema == "retrolarium.snes.disassembly":
-        validate_snes_disassembly_manifest(
-            manifest, root, verify_rebuilt=verify_rebuilt
-        )
+        validate_snes_disassembly_manifest(manifest, root, verify_rebuilt=verify_rebuilt)
     else:
         raise ContractError("unsupported disassembly manifest schema")
 
 
-def load_disassembly_manifest(
-    path: Path, *, verify_rebuilt: bool = True
-) -> dict[str, Any]:
+def load_disassembly_manifest(path: Path, *, verify_rebuilt: bool = True) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ContractError(f"cannot read disassembly manifest: {exc}") from exc
     manifest = _mapping(value, "manifest")
-    validate_disassembly_manifest(
-        manifest, path.resolve().parent, verify_rebuilt=verify_rebuilt
-    )
+    validate_disassembly_manifest(manifest, path.resolve().parent, verify_rebuilt=verify_rebuilt)
     return manifest

@@ -115,8 +115,9 @@ def make_targets(repo: Path) -> list[str]:
     # otherwise), and any quoting: GNU make 3.81 writes `target'.
     environment = dict(os.environ, LC_ALL="C", LANGUAGE="C")
     for target in MAKE_TARGETS:
-        result = subprocess.run([make, "-n", "-s", target], cwd=repo, capture_output=True, text=True,
-                                errors="replace", env=environment)
+        result = subprocess.run(
+            [make, "-n", "-s", target], cwd=repo, capture_output=True, text=True, errors="replace", env=environment
+        )
         if not re.search(rf"No rule to make target .{re.escape(target)}'", result.stderr):
             found.append(target)
     return found
@@ -160,8 +161,13 @@ def main(argv: list[str] | None = None) -> int:
     installing = commands.add_parser("install")
     installing.add_argument("repo", nargs="?", type=Path, default=Path("."))
     installing.add_argument("--force", action="store_true", help="replace hooks that are not ours")
-    installing.add_argument("--env", action="append", default=[], metavar="NAME=VALUE",
-                            help="a variable for the hooks and their make targets (repeatable)")
+    installing.add_argument(
+        "--env",
+        action="append",
+        default=[],
+        metavar="NAME=VALUE",
+        help="a variable for the hooks and their make targets (repeatable)",
+    )
     commands.add_parser("uninstall").add_argument("repo", nargs="?", type=Path, default=Path("."))
     for name in ("format", "markdown"):
         formatting_parser = commands.add_parser(name)

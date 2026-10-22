@@ -65,11 +65,13 @@ class StopWords:
 
     def __post_init__(self) -> None:
         if self.words:
-            object.__setattr__(self, "_pattern", re.compile("|".join(_word_pattern(word) for word in self.words),
-                                                            re.IGNORECASE))
+            object.__setattr__(
+                self, "_pattern", re.compile("|".join(_word_pattern(word) for word in self.words), re.IGNORECASE)
+            )
         if self.allowed:
-            object.__setattr__(self, "_allow", re.compile("|".join(re.escape(text) for text in self.allowed),
-                                                          re.IGNORECASE))
+            object.__setattr__(
+                self, "_allow", re.compile("|".join(re.escape(text) for text in self.allowed), re.IGNORECASE)
+            )
 
     @classmethod
     def read(cls, path: Path) -> "StopWords":
@@ -141,8 +143,7 @@ def not_performed(start: Path) -> str:
 
 
 def _git(repo: Path, *args: str, data: bytes | None = None) -> bytes:
-    return subprocess.run(["git", "-C", str(repo), *args], input=data or b"", capture_output=True,
-                          check=True).stdout
+    return subprocess.run(["git", "-C", str(repo), *args], input=data or b"", capture_output=True, check=True).stdout
 
 
 def _batch(repo: Path, names: list[str]):
@@ -150,8 +151,9 @@ def _batch(repo: Path, names: list[str]):
     object in memory at a time."""
     if not names:
         return
-    process = subprocess.Popen(["git", "-C", str(repo), "cat-file", "--batch"],
-                               stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    process = subprocess.Popen(
+        ["git", "-C", str(repo), "cat-file", "--batch"], stdin=subprocess.PIPE, stdout=subprocess.PIPE
+    )
 
     def feed() -> None:
         try:
@@ -187,7 +189,7 @@ def _tree_names(body: bytes) -> list[tuple[str, str]]:
     while position < len(body):
         space = body.index(b" ", position)
         nul = body.index(b"\0", space)
-        entries.append((body[space + 1:nul].decode("utf-8", "surrogateescape"), body[nul + 1:nul + 21].hex()))
+        entries.append((body[space + 1 : nul].decode("utf-8", "surrogateescape"), body[nul + 1 : nul + 21].hex()))
         position = nul + 21
     return entries
 

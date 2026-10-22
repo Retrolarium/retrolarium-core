@@ -27,8 +27,16 @@
     "input": {
       "type": "object",
       "required": [
-        "schema", "schema_version", "sha256", "size", "byte_order", "cpu",
-        "header", "vectors", "regions", "address_ranges"
+        "schema",
+        "schema_version",
+        "sha256",
+        "size",
+        "byte_order",
+        "cpu",
+        "header",
+        "vectors",
+        "regions",
+        "address_ranges"
       ],
       "properties": {
         "schema": { "const": "retrolarium.megadrive.image" },
@@ -64,10 +72,7 @@
         },
         "coverage": {
           "type": "object",
-          "required": [
-            "rom_bytes", "vector_bytes", "instruction_bytes", "pointer_bytes",
-            "asset_bytes", "raw_bytes"
-          ]
+          "required": ["rom_bytes", "vector_bytes", "instruction_bytes", "pointer_bytes", "asset_bytes", "raw_bytes"]
         }
       }
     },

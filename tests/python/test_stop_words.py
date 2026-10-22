@@ -29,13 +29,23 @@ example_corp
 ExampleCorp/public-tool
 """
 WORDS = StopWords(("example_corp", "примерн"), ("ExampleCorp/public-tool",))
-IDENTITY = {"GIT_AUTHOR_NAME": "A", "GIT_AUTHOR_EMAIL": "a@example.org",
-            "GIT_COMMITTER_NAME": "A", "GIT_COMMITTER_EMAIL": "a@example.org"}
+IDENTITY = {
+    "GIT_AUTHOR_NAME": "A",
+    "GIT_AUTHOR_EMAIL": "a@example.org",
+    "GIT_COMMITTER_NAME": "A",
+    "GIT_COMMITTER_EMAIL": "a@example.org",
+}
 
 
 def git(root: Path, *args: str, env: dict | None = None, stdin: str | None = None) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, input=stdin,
-                          env=dict(os.environ, **IDENTITY, **(env or {})))
+    return subprocess.run(
+        ["git", *args],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        input=stdin,
+        env=dict(os.environ, **IDENTITY, **(env or {})),
+    )
 
 
 def repository(directory: str) -> Path:
@@ -103,8 +113,12 @@ class ListTests(unittest.TestCase):
     def test_without_a_list_the_check_says_it_did_not_run(self) -> None:
         with tempfile.TemporaryDirectory() as directory, mock.patch.dict(os.environ):
             os.environ[stop_words.ENVIRONMENT] = str(Path(directory) / "missing")
-            result = subprocess.run([sys.executable, "-m", "retrolarium_core.stop_words", "check", directory],
-                                    capture_output=True, text=True, env=dict(os.environ, PYTHONPATH=str(CORE)))
+            result = subprocess.run(
+                [sys.executable, "-m", "retrolarium_core.stop_words", "check", directory],
+                capture_output=True,
+                text=True,
+                env=dict(os.environ, PYTHONPATH=str(CORE)),
+            )
             self.assertEqual(0, result.returncode)
             self.assertIn(stop_words.NOT_PERFORMED, result.stderr)
 
@@ -117,8 +131,10 @@ class RepositoryTests(unittest.TestCase):
             (root / "notes.md").write_text("built at D:/Example_Corp\n", encoding="utf-8")
             (root / "examplecorp").mkdir()
             (root / "examplecorp" / "a.txt").write_text("x\n", encoding="utf-8")
-            self.assertEqual(["notes.md: example_corp", "path examplecorp/a.txt: examplecorp"],
-                             sorted(stop_words.check_tree(root, WORDS)))
+            self.assertEqual(
+                ["notes.md: example_corp", "path examplecorp/a.txt: examplecorp"],
+                sorted(stop_words.check_tree(root, WORDS)),
+            )
 
     def test_staged_changes_message_and_identity_are_checked(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -208,7 +224,7 @@ class HookTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = repository(directory)
             env = {stop_words.ENVIRONMENT: str(Path(directory) / "missing")}
-            (root / "Makefile").write_text("lint:\n\t@test \"$$HOOK_PROBE\" = \"it's set\"\n", encoding="utf-8")
+            (root / "Makefile").write_text('lint:\n\t@test "$$HOOK_PROBE" = "it\'s set"\n', encoding="utf-8")
             git(root, "add", "Makefile")
             hooks.install(root)
             self.assertNotEqual(0, git(root, "commit", "-q", "-m", "without", env=env).returncode)

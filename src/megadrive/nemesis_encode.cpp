@@ -14,8 +14,7 @@ struct ReferenceHeader final {
     std::size_t headerSize = 0;
 };
 
-ReferenceHeader parseReference(const std::vector<std::uint8_t> &reference)
-{
+ReferenceHeader parseReference(const std::vector<std::uint8_t>& reference) {
     const auto require = [&reference](std::size_t index) {
         if (index >= reference.size()) {
             throw NemesisError("Nemesis reference ended inside its code table");
@@ -49,8 +48,7 @@ ReferenceHeader parseReference(const std::vector<std::uint8_t> &reference)
             }
             const int codeByte = require(position++);
             // First definition wins, matching the oracle's setdefault.
-            result.codes.emplace(std::make_pair(paletteIndex, runLength),
-                std::make_pair(codeByte, codeLength));
+            result.codes.emplace(std::make_pair(paletteIndex, runLength), std::make_pair(codeByte, codeLength));
         }
         if (value == 0xFF) {
             break;
@@ -62,16 +60,14 @@ ReferenceHeader parseReference(const std::vector<std::uint8_t> &reference)
 
 // Flattens tile data into nybbles, undoing the XOR chaining the stream applies
 // on the way out.
-std::vector<int> toNybbles(const std::vector<std::uint8_t> &plain, bool xorMode)
-{
+std::vector<int> toNybbles(const std::vector<std::uint8_t>& plain, bool xorMode) {
     std::vector<int> nybbles;
     nybbles.reserve(plain.size() * 2);
     std::uint32_t previous = 0;
     for (std::size_t offset = 0; offset + 3 < plain.size(); offset += 4) {
-        const std::uint32_t word = (static_cast<std::uint32_t>(plain[offset]) << 24)
-            | (static_cast<std::uint32_t>(plain[offset + 1]) << 16)
-            | (static_cast<std::uint32_t>(plain[offset + 2]) << 8)
-            | plain[offset + 3];
+        const std::uint32_t word = (static_cast<std::uint32_t>(plain[offset]) << 24) |
+                                   (static_cast<std::uint32_t>(plain[offset + 1]) << 16) |
+                                   (static_cast<std::uint32_t>(plain[offset + 2]) << 8) | plain[offset + 3];
         std::uint32_t stored = word;
         if (xorMode) {
             stored = word ^ previous;
@@ -86,21 +82,18 @@ std::vector<int> toNybbles(const std::vector<std::uint8_t> &plain, bool xorMode)
 
 class BitWriter final {
 public:
-    void write(int value, int count)
-    {
+    void write(int value, int count) {
         for (int shift = count - 1; shift >= 0; --shift) {
             bits_.push_back((value >> shift) & 1);
         }
     }
 
-    [[nodiscard]] std::vector<std::uint8_t> toBytes(int pad) const
-    {
+    [[nodiscard]] std::vector<std::uint8_t> toBytes(int pad) const {
         std::vector<std::uint8_t> out;
         for (std::size_t index = 0; index < bits_.size(); index += 8) {
             int value = 0;
             for (std::size_t offset = 0; offset < 8; ++offset) {
-                value = (value << 1)
-                    | (index + offset < bits_.size() ? bits_[index + offset] : pad);
+                value = (value << 1) | (index + offset < bits_.size() ? bits_[index + offset] : pad);
             }
             out.push_back(static_cast<std::uint8_t>(value));
         }
@@ -111,18 +104,17 @@ private:
     std::vector<int> bits_;
 };
 
-} // namespace
+}  // namespace
 
-std::vector<std::uint8_t> nemesisCompress(
-    const std::vector<std::uint8_t> &plain, const std::vector<std::uint8_t> &reference)
-{
+std::vector<std::uint8_t> nemesisCompress(const std::vector<std::uint8_t>& plain,
+                                          const std::vector<std::uint8_t>& reference) {
     const ReferenceHeader header = parseReference(reference);
     // The reference's header (tile count included) is copied: the data must
     // be that many tiles, or the stream would decode to something else.
     const std::size_t tiles = static_cast<std::size_t>(((reference[0] << 8) | reference[1]) & 0x7FFF);
     if (plain.size() != tiles * 32) {
-        throw NemesisError("Nemesis data is " + std::to_string(plain.size()) + " bytes; the reference holds "
-            + std::to_string(tiles) + " tiles of 32");
+        throw NemesisError("Nemesis data is " + std::to_string(plain.size()) + " bytes; the reference holds " +
+                           std::to_string(tiles) + " tiles of 32");
     }
     const std::vector<int> nybbles = toNybbles(plain, header.xorMode);
     const std::size_t total = nybbles.size();
@@ -140,8 +132,7 @@ std::vector<std::uint8_t> nemesisCompress(
         const std::size_t index = reverse - 1;
         const int nybble = nybbles[index];
         std::size_t maximum = 1;
-        while (maximum < 8 && index + maximum < total
-            && nybbles[index + maximum] == nybble) {
+        while (maximum < 8 && index + maximum < total && nybbles[index + maximum] == nybble) {
             ++maximum;
         }
 
@@ -164,14 +155,12 @@ std::vector<std::uint8_t> nemesisCompress(
 
         for (std::size_t run = 1; run <= maximum; ++run) {
             const int tail = costs[index + run];
-            const auto found = header.codes.find(
-                std::make_pair(nybble, static_cast<int>(run)));
+            const auto found = header.codes.find(std::make_pair(nybble, static_cast<int>(run)));
             if (found != header.codes.end()) {
                 consider(found->second.second + tail, static_cast<int>(run),
-                    Choice {static_cast<int>(run), false, nybble});
+                         Choice{static_cast<int>(run), false, nybble});
             }
-            consider(13 + tail, static_cast<int>(run),
-                Choice {static_cast<int>(run), true, nybble});
+            consider(13 + tail, static_cast<int>(run), Choice{static_cast<int>(run), true, nybble});
         }
 
         costs[index] = bestCost;
@@ -181,14 +170,13 @@ std::vector<std::uint8_t> nemesisCompress(
     BitWriter writer;
     std::size_t index = 0;
     while (index < total) {
-        const Choice &choice = choices[index];
+        const Choice& choice = choices[index];
         if (choice.inlineRun) {
             writer.write(0x3F, 6);
             writer.write(choice.run - 1, 3);
             writer.write(choice.nybble, 4);
         } else {
-            const auto found =
-                header.codes.find(std::make_pair(choice.nybble, choice.run));
+            const auto found = header.codes.find(std::make_pair(choice.nybble, choice.run));
             writer.write(found->second.first, found->second.second);
         }
         index += static_cast<std::size_t>(choice.run);
@@ -196,13 +184,12 @@ std::vector<std::uint8_t> nemesisCompress(
 
     // The header and its code table come from the reference verbatim: reusing
     // them is what removes the only genuinely lossy decision in the format.
-    std::vector<std::uint8_t> out(
-        reference.begin(), reference.begin()
-            + static_cast<std::ptrdiff_t>(header.headerSize));
+    std::vector<std::uint8_t> out(reference.begin(),
+                                  reference.begin() + static_cast<std::ptrdiff_t>(header.headerSize));
     // The original pads its final byte with set bits.
     const auto payload = writer.toBytes(1);
     out.insert(out.end(), payload.begin(), payload.end());
     return out;
 }
 
-} // namespace retrolarium::core
+}  // namespace retrolarium::core

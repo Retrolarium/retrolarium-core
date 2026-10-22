@@ -115,9 +115,7 @@ def _declared_size(data: bytes) -> int:
 def parse_ines(data: bytes, source: Path | None = None) -> InesImage:
     expected_size = _declared_size(data)
     if len(data) != expected_size:
-        raise InesError(
-            f"image size is {len(data)}, header describes {expected_size} bytes"
-        )
+        raise InesError(f"image size is {len(data)}, header describes {expected_size} bytes")
     header = data[:16]
     flags6 = header[6]
     flags7 = header[7]
@@ -130,11 +128,11 @@ def parse_ines(data: bytes, source: Path | None = None) -> InesImage:
     chr_size = header[5] * 0x2000
 
     cursor = 16
-    trainer = data[cursor:cursor + trainer_size]
+    trainer = data[cursor : cursor + trainer_size]
     cursor += trainer_size
-    prg = data[cursor:cursor + prg_size]
+    prg = data[cursor : cursor + prg_size]
     cursor += prg_size
-    chr_data = data[cursor:cursor + chr_size]
+    chr_data = data[cursor : cursor + chr_size]
     if flags6 & 0x08:
         mirroring = "four-screen"
     elif flags6 & 0x01:
@@ -155,16 +153,12 @@ def parse_ines(data: bytes, source: Path | None = None) -> InesImage:
     )
 
 
-def parse_ines_prefix(
-    data: bytes, source: Path | None = None
-) -> tuple[InesImage, bytes]:
+def parse_ines_prefix(data: bytes, source: Path | None = None) -> tuple[InesImage, bytes]:
     """Parse an iNES image embedded at the start of a larger container."""
 
     expected_size = _declared_size(data)
     if len(data) < expected_size:
-        raise InesError(
-            f"image size is {len(data)}, header describes {expected_size} bytes"
-        )
+        raise InesError(f"image size is {len(data)}, header describes {expected_size} bytes")
     return parse_ines(data[:expected_size], source), data[expected_size:]
 
 
@@ -181,9 +175,7 @@ def mapper_profiles() -> dict[int, MapperProfile]:
         document = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise InesError(f"cannot read NES mapper profiles: {exc}") from exc
-    if document.get("schema_version") != 1 or not isinstance(
-        document.get("profiles"), dict
-    ):
+    if document.get("schema_version") != 1 or not isinstance(document.get("profiles"), dict):
         raise InesError("unsupported NES mapper profile schema")
     profiles: dict[int, MapperProfile] = {}
     try:
@@ -194,11 +186,7 @@ def mapper_profiles() -> dict[int, MapperProfile]:
                 name=str(value["name"]),
                 mapper=mapper,
                 prg_mode=str(value["prg_mode"]),
-                prg_bank_size=(
-                    None
-                    if value["prg_bank_size"] is None
-                    else int(value["prg_bank_size"])
-                ),
+                prg_bank_size=(None if value["prg_bank_size"] is None else int(value["prg_bank_size"])),
                 prg_window_start=int(value["prg_window_start"]),
                 max_prg_banks=int(value["max_prg_banks"]),
                 chr_bank_size=int(value["chr_bank_size"]),
@@ -250,27 +238,20 @@ def mapper_projections(image: InesImage) -> tuple[CpuProjection, ...]:
             projections.extend(
                 (
                     _projection("prg", 0, 0x4000, "cpu", 0xC000, 0),
-                    _projection(
-                        "prg", 0, 0x4000, "cpu", 0x8000, 0, canonical=False
-                    ),
+                    _projection("prg", 0, 0x4000, "cpu", 0x8000, 0, canonical=False),
                 )
             )
         elif len(image.prg) == 0x8000:
             projections.append(_projection("prg", 0, 0x8000, "cpu", 0x8000, 0))
         else:
-            raise InesError(
-                f"{profile.name} requires 16 or 32 KiB PRG, got {len(image.prg)} bytes"
-            )
+            raise InesError(f"{profile.name} requires 16 or 32 KiB PRG, got {len(image.prg)} bytes")
     elif profile.prg_mode == "selectable_32k":
         bank_size = profile.prg_bank_size
         if bank_size is None or len(image.prg) % bank_size:
             raise InesError(f"{profile.name} PRG is not aligned to its bank size")
         bank_count = len(image.prg) // bank_size
         if not 1 <= bank_count <= profile.max_prg_banks:
-            raise InesError(
-                f"{profile.name} supports 1..{profile.max_prg_banks} PRG banks, "
-                f"got {bank_count}"
-            )
+            raise InesError(f"{profile.name} supports 1..{profile.max_prg_banks} PRG banks, got {bank_count}")
         for bank in range(bank_count):
             projections.append(
                 _projection(
@@ -291,10 +272,7 @@ def mapper_projections(image: InesImage) -> tuple[CpuProjection, ...]:
             raise InesError(f"{profile.name} CHR is not aligned to its bank size")
         bank_count = len(image.chr) // profile.chr_bank_size
         if not 1 <= bank_count <= profile.max_chr_banks:
-            raise InesError(
-                f"{profile.name} supports 1..{profile.max_chr_banks} CHR banks, "
-                f"got {bank_count}"
-            )
+            raise InesError(f"{profile.name} supports 1..{profile.max_chr_banks} CHR banks, got {bank_count}")
         selector = "mapper.chr_bank" if profile.chr_selectable else None
         for bank in range(bank_count):
             projections.append(
@@ -314,20 +292,12 @@ def mapper_projections(image: InesImage) -> tuple[CpuProjection, ...]:
 def nrom_projections(image: InesImage) -> tuple[CpuProjection, ...]:
     if image.mapper != 0:
         raise InesError(f"NROM profile requires mapper 0, got mapper {image.mapper}")
-    return tuple(
-        projection
-        for projection in mapper_projections(image)
-        if projection.region == "prg"
-    )
+    return tuple(projection for projection in mapper_projections(image) if projection.region == "prg")
 
 
 def canonical_prg_start(image: InesImage, bank: int = 0) -> int:
     for projection in mapper_projections(image):
-        if (
-            projection.region == "prg"
-            and projection.bank == bank
-            and projection.canonical
-        ):
+        if projection.region == "prg" and projection.bank == bank and projection.canonical:
             return projection.cpu_start
     raise InesError(f"mapper {image.mapper} has no canonical PRG bank {bank}")
 
@@ -350,32 +320,21 @@ def address_to_region_offset(
     ]
     if not matches:
         raise InesError(
-            f"{address_space} address ${address:04X} is outside mapper "
-            f"{image.mapper} {region.upper()} windows"
+            f"{address_space} address ${address:04X} is outside mapper {image.mapper} {region.upper()} windows"
         )
-    offsets = {
-        projection.physical_start + address - projection.cpu_start
-        for projection in matches
-    }
+    offsets = {projection.physical_start + address - projection.cpu_start for projection in matches}
     if len(offsets) != 1:
-        raise InesError(
-            f"{address_space} address ${address:04X} is bank-ambiguous; "
-            "an explicit bank is required"
-        )
+        raise InesError(f"{address_space} address ${address:04X} is bank-ambiguous; an explicit bank is required")
     return offsets.pop()
 
 
-def cpu_to_prg_offset(
-    image: InesImage, address: int, *, bank: int | None = None
-) -> int:
+def cpu_to_prg_offset(image: InesImage, address: int, *, bank: int | None = None) -> int:
     return address_to_region_offset(image, "prg", "cpu", address, bank=bank)
 
 
 def _mapper_zero_analysis_image(image: InesImage, prg: bytes) -> InesImage:
     if len(prg) not in {0x4000, 0x8000}:
-        raise InesError(
-            f"analysis staging requires a 16 or 32 KiB PRG window, got {len(prg)}"
-        )
+        raise InesError(f"analysis staging requires a 16 or 32 KiB PRG window, got {len(prg)}")
     flags6 = image.header[6] & 0x0B
     header = b"NES\x1a" + bytes((len(prg) // 0x4000, 0, flags6, 0)) + bytes(8)
     return parse_ines(header + prg)
@@ -384,9 +343,7 @@ def _mapper_zero_analysis_image(image: InesImage, prg: bytes) -> InesImage:
 def prg_analysis_targets(image: InesImage) -> tuple[PrgAnalysisTarget, ...]:
     """Materialize non-overlapping mapper-0 views for external code analyzers."""
     projections = tuple(
-        projection
-        for projection in mapper_projections(image)
-        if projection.region == "prg" and projection.canonical
+        projection for projection in mapper_projections(image) if projection.region == "prg" and projection.canonical
     )
     targets: list[PrgAnalysisTarget] = []
     for projection in projections:
@@ -394,9 +351,7 @@ def prg_analysis_targets(image: InesImage) -> tuple[PrgAnalysisTarget, ...]:
             analysis_image = image
             synthesized = False
         else:
-            prg = image.prg[
-                projection.physical_start:projection.physical_end + 1
-            ]
+            prg = image.prg[projection.physical_start : projection.physical_end + 1]
             analysis_image = _mapper_zero_analysis_image(image, prg)
             synthesized = True
         targets.append(

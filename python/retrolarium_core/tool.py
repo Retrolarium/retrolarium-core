@@ -67,9 +67,7 @@ def find_core_tool() -> Path:
         candidate = Path(override)
         if candidate.is_file():
             return candidate
-        raise CoreToolError(
-            f"{ENVIRONMENT_OVERRIDE} points at {candidate}, which is not a file"
-        )
+        raise CoreToolError(f"{ENVIRONMENT_OVERRIDE} points at {candidate}, which is not a file")
 
     for candidate in _packaged_candidates() + _checkout_candidates():
         if candidate.is_file():
@@ -80,8 +78,7 @@ def find_core_tool() -> Path:
         return Path(found)
 
     raise CoreToolError(
-        f"{TOOL_NAME} was not found. Build retrolarium-core, or set "
-        f"{ENVIRONMENT_OVERRIDE} to the executable."
+        f"{TOOL_NAME} was not found. Build retrolarium-core, or set {ENVIRONMENT_OVERRIDE} to the executable."
     )
 
 
@@ -102,10 +99,7 @@ def run(arguments: Sequence[str], *, timeout: float = 120.0) -> dict[str, object
     )
     if completed.returncode != 0:
         detail = completed.stderr.strip() or completed.stdout.strip()
-        raise CoreToolError(
-            f"{TOOL_NAME} {' '.join(arguments)} failed with exit code "
-            f"{completed.returncode}: {detail}"
-        )
+        raise CoreToolError(f"{TOOL_NAME} {' '.join(arguments)} failed with exit code {completed.returncode}: {detail}")
     output = completed.stdout.strip()
     if not output:
         return {}
@@ -113,8 +107,7 @@ def run(arguments: Sequence[str], *, timeout: float = 120.0) -> dict[str, object
         parsed = json.loads(output)
     except json.JSONDecodeError as error:
         raise CoreToolError(
-            f"{TOOL_NAME} {' '.join(arguments)} produced output that is not JSON: "
-            f"{output[:200]}"
+            f"{TOOL_NAME} {' '.join(arguments)} produced output that is not JSON: {output[:200]}"
         ) from error
     if not isinstance(parsed, dict):
         raise CoreToolError(f"{TOOL_NAME} returned {type(parsed).__name__}, not an object")
@@ -123,9 +116,7 @@ def run(arguments: Sequence[str], *, timeout: float = 120.0) -> dict[str, object
 
 def version() -> str:
     tool = find_core_tool()
-    completed = subprocess.run(
-        [str(tool), "version"], capture_output=True, text=True, timeout=30, check=False
-    )
+    completed = subprocess.run([str(tool), "version"], capture_output=True, text=True, timeout=30, check=False)
     if completed.returncode != 0:
         raise CoreToolError(f"{TOOL_NAME} version failed: {completed.stderr.strip()}")
     return completed.stdout.strip()
@@ -158,6 +149,7 @@ def enigma_compress(plain: Path, output: Path) -> dict[str, object]:
 
 # The same codecs on bytes, for callers that hold the data in memory (the
 # kit's Flicky graphics): rlcore reads and writes files in a scratch folder.
+
 
 def _through_files(command: str, inputs: Sequence[bytes], extra: Sequence[str] = ()) -> bytes:
     with tempfile.TemporaryDirectory(prefix="rlcore-") as directory:

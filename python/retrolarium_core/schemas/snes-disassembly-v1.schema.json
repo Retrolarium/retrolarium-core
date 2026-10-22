@@ -5,9 +5,19 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema", "schema_version", "task", "mode", "input", "analysis",
-    "pointers", "symbols", "cross_cpu_evidence", "assets", "source",
-    "operations", "verification"
+    "schema",
+    "schema_version",
+    "task",
+    "mode",
+    "input",
+    "analysis",
+    "pointers",
+    "symbols",
+    "cross_cpu_evidence",
+    "assets",
+    "source",
+    "operations",
+    "verification"
   ],
   "properties": {
     "schema": { "const": "retrolarium.snes.disassembly" },
@@ -17,9 +27,20 @@
     "input": {
       "type": "object",
       "required": [
-        "schema", "schema_version", "container_sha256", "container_size",
-        "rom_sha256", "rom_size", "copier_header_size", "byte_order", "cpu",
-        "mapping", "header", "vectors", "regions", "bus_windows"
+        "schema",
+        "schema_version",
+        "container_sha256",
+        "container_size",
+        "rom_sha256",
+        "rom_size",
+        "copier_header_size",
+        "byte_order",
+        "cpu",
+        "mapping",
+        "header",
+        "vectors",
+        "regions",
+        "bus_windows"
       ],
       "properties": {
         "schema": { "const": "retrolarium.snes.image" },
@@ -49,10 +70,7 @@
     },
     "source": {
       "type": "object",
-      "required": [
-        "dialect", "directory", "units", "header_unit", "coverage",
-        "whole_rom_fallback", "emission"
-      ],
+      "required": ["dialect", "directory", "units", "header_unit", "coverage", "whole_rom_fallback", "emission"],
       "properties": {
         "dialect": { "const": "ca65" },
         "units": {
@@ -64,8 +82,12 @@
         "coverage": {
           "type": "object",
           "required": [
-            "rom_bytes", "copier_header_bytes", "instruction_bytes",
-            "instruction_fallback_bytes", "pointer_bytes", "header_bytes",
+            "rom_bytes",
+            "copier_header_bytes",
+            "instruction_bytes",
+            "instruction_fallback_bytes",
+            "pointer_bytes",
+            "header_bytes",
             "raw_bytes"
           ]
         }

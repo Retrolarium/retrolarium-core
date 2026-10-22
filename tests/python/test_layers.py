@@ -1,5 +1,6 @@
 """retrolarium_core is the bottom layer: it imports neither the kit nor the
 disassembler, which both build on it."""
+
 from __future__ import annotations
 
 import ast

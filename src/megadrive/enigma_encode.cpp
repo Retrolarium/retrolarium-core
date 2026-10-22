@@ -27,8 +27,7 @@ struct Decision final {
     bool terminal = false;
 };
 
-std::vector<int> wordsFromBytes(const std::vector<std::uint8_t> &data)
-{
+std::vector<int> wordsFromBytes(const std::vector<std::uint8_t>& data) {
     if (data.size() % 2 != 0) {
         throw EnigmaError("Enigma input tilemap must contain whole big-endian words");
     }
@@ -40,13 +39,10 @@ std::vector<int> wordsFromBytes(const std::vector<std::uint8_t> &data)
     return words;
 }
 
-int runLength(const std::vector<int> &values, std::size_t position, int step)
-{
+int runLength(const std::vector<int>& values, std::size_t position, int step) {
     int length = 1;
-    while (length < 16
-        && position + static_cast<std::size_t>(length) < values.size()
-        && values[position + static_cast<std::size_t>(length)]
-            == ((values[position] + step * length) & 0xFFFF)) {
+    while (length < 16 && position + static_cast<std::size_t>(length) < values.size() &&
+           values[position + static_cast<std::size_t>(length)] == ((values[position] + step * length) & 0xFFFF)) {
         ++length;
     }
     return length;
@@ -63,11 +59,7 @@ struct Candidate final {
 
 class Solver final {
 public:
-    Solver(const std::vector<int> &values, int bitsCount)
-        : values_(values)
-        , bitsCount_(bitsCount)
-    {
-    }
+    Solver(const std::vector<int>& values, int bitsCount) : values_(values), bitsCount_(bitsCount) {}
 
     // Elements of an unordered_map keep their address through a rehash, so
     // a reference handed to a caller survives later inserts.
@@ -76,17 +68,16 @@ public:
     // state's candidates are listed in the oracle's order, each waits for the
     // state it leads to, and ties keep the first. A map as long as a plane
     // (thousands of words) would otherwise nest that many native calls.
-    const Decision &solve(std::size_t position, int incTile)
-    {
+    const Decision& solve(std::size_t position, int incTile) {
         if (const auto found = memo_.find(key(position, incTile)); found != memo_.end()) {
             return found->second;
         }
         std::vector<Frame> stack;
         stack.push_back(open(position, incTile));
         while (!stack.empty()) {
-            Frame &frame = stack.back();
+            Frame& frame = stack.back();
             if (frame.next < frame.candidates.size()) {
-                const Candidate &candidate = frame.candidates[frame.next];
+                const Candidate& candidate = frame.candidates[frame.next];
                 const auto child = memo_.find(key(candidate.nextPosition, candidate.nextIncTile));
                 if (child == memo_.end()) {
                     // Opened after the reference is used: push_back may move frames.
@@ -96,8 +87,8 @@ public:
                 }
                 const int cost = candidate.cost + child->second.cost;
                 if (!frame.haveBest || cost < frame.best.cost) {
-                    frame.best = Decision {cost, candidate.command, candidate.nextPosition,
-                        candidate.nextIncTile, false};
+                    frame.best =
+                        Decision{cost, candidate.command, candidate.nextPosition, candidate.nextIncTile, false};
                     frame.haveBest = true;
                 }
                 ++frame.next;
@@ -109,7 +100,6 @@ public:
         return memo_.find(key(position, incTile))->second;
     }
 
-
 private:
     struct Frame final {
         std::size_t position = 0;
@@ -120,79 +110,70 @@ private:
         bool haveBest = false;
     };
 
-    static std::uint64_t key(std::size_t position, int incTile)
-    {
+    static std::uint64_t key(std::size_t position, int incTile) {
         return (static_cast<std::uint64_t>(position) << 17) | static_cast<std::uint64_t>(incTile & 0xFFFF);
     }
 
     // A state's candidates in the oracle's order; the end of the map is the
     // terminator alone, decided at once.
-    Frame open(std::size_t position, int incTile)
-    {
+    Frame open(std::size_t position, int incTile) {
         Frame frame;
         frame.position = position;
         frame.incTile = incTile;
         if (position == values_.size()) {
             frame.best.cost = 7;
-            frame.best.command = Command {7, 15};
+            frame.best.command = Command{7, 15};
             frame.best.terminal = true;
             frame.haveBest = true;
             return frame;
         }
         if (values_[position] == incTile) {
             int length = 0;
-            while (length < 16
-                && position + static_cast<std::size_t>(length) < values_.size()
-                && values_[position + static_cast<std::size_t>(length)]
-                    == ((incTile + length) & 0xFFFF)) {
+            while (length < 16 && position + static_cast<std::size_t>(length) < values_.size() &&
+                   values_[position + static_cast<std::size_t>(length)] == ((incTile + length) & 0xFFFF)) {
                 ++length;
             }
             for (int count = 1; count <= length; ++count) {
-                frame.candidates.push_back(Candidate {6, Command {0, count - 1},
-                    position + static_cast<std::size_t>(count), (incTile + count) & 0xFFFF});
+                frame.candidates.push_back(Candidate{
+                    6, Command{0, count - 1}, position + static_cast<std::size_t>(count), (incTile + count) & 0xFFFF});
             }
         }
-        static constexpr int kModes[3] {4, 5, 6};
-        static constexpr int kSteps[3] {0, 1, -1};
+        static constexpr int kModes[3]{4, 5, 6};
+        static constexpr int kSteps[3]{0, 1, -1};
         for (int index = 0; index < 3; ++index) {
             const int maximum = runLength(values_, position, kSteps[index]);
             for (int count = 1; count <= maximum; ++count) {
-                frame.candidates.push_back(Candidate {7 + bitsCount_,
-                    Command {kModes[index], count - 1},
-                    position + static_cast<std::size_t>(count), incTile});
+                frame.candidates.push_back(Candidate{7 + bitsCount_, Command{kModes[index], count - 1},
+                                                     position + static_cast<std::size_t>(count), incTile});
             }
         }
-        const int literalLimit =
-            static_cast<int>(std::min<std::size_t>(15, values_.size() - position));
+        const int literalLimit = static_cast<int>(std::min<std::size_t>(15, values_.size() - position));
         for (int count = 1; count <= literalLimit; ++count) {
-            frame.candidates.push_back(Candidate {7 + count * bitsCount_, Command {7, count - 1},
-                position + static_cast<std::size_t>(count), incTile});
+            frame.candidates.push_back(Candidate{7 + count * bitsCount_, Command{7, count - 1},
+                                                 position + static_cast<std::size_t>(count), incTile});
         }
         return frame;
     }
 
-    const std::vector<int> &values_;
+    const std::vector<int>& values_;
     int bitsCount_ = 0;
     std::unordered_map<std::uint64_t, Decision> memo_;
 };
 
 class BitWriter final {
 public:
-    void write(int value, int count)
-    {
+    void write(int value, int count) {
         for (int shift = count - 1; shift >= 0; --shift) {
             bits_.push_back((value >> shift) & 1);
         }
     }
 
-    [[nodiscard]] std::vector<std::uint8_t> toBytes() const
-    {
+    [[nodiscard]] std::vector<std::uint8_t> toBytes() const {
         std::vector<std::uint8_t> out;
         for (std::size_t index = 0; index < bits_.size(); index += 8) {
             int value = 0;
             for (std::size_t offset = 0; offset < 8; ++offset) {
-                value = (value << 1)
-                    | (index + offset < bits_.size() ? bits_[index + offset] : 0);
+                value = (value << 1) | (index + offset < bits_.size() ? bits_[index + offset] : 0);
             }
             out.push_back(static_cast<std::uint8_t>(value));
         }
@@ -203,10 +184,9 @@ private:
     std::vector<int> bits_;
 };
 
-} // namespace
+}  // namespace
 
-std::vector<std::uint8_t> enigmaCompress(const std::vector<std::uint8_t> &data)
-{
+std::vector<std::uint8_t> enigmaCompress(const std::vector<std::uint8_t>& data) {
     const std::vector<int> values = wordsFromBytes(data);
     if (values.empty()) {
         throw EnigmaError("Enigma cannot encode an empty tilemap");
@@ -230,7 +210,7 @@ std::vector<std::uint8_t> enigmaCompress(const std::vector<std::uint8_t> &data)
     }
     int staticTile = frequencies.begin()->first;
     int bestFrequency = -1;
-    for (const auto &entry : frequencies) {
+    for (const auto& entry : frequencies) {
         if (entry.second > bestFrequency) {
             bestFrequency = entry.second;
             staticTile = entry.first;
@@ -263,14 +243,14 @@ std::vector<std::uint8_t> enigmaCompress(const std::vector<std::uint8_t> &data)
     int incTile = bestIncTile;
     while (true) {
         const Decision decision = solver.solve(position, incTile);
-        writer.write((decision.command.mode << 4) | decision.command.repeat,
-            decision.command.mode <= 1 ? 6 : 7);
+        writer.write((decision.command.mode << 4) | decision.command.repeat, decision.command.mode <= 1 ? 6 : 7);
         // Modes 4 to 6 write the tile at the position, a literal (mode 7
         // short of the terminator) the run of tiles from it.
         const int mode = decision.command.mode;
-        const int operands = decision.terminal ? 0
-            : mode >= 4 && mode <= 6 ? 1
-            : mode == 7 ? decision.command.repeat + 1 : 0;
+        const int operands = decision.terminal        ? 0
+                             : mode >= 4 && mode <= 6 ? 1
+                             : mode == 7              ? decision.command.repeat + 1
+                                                      : 0;
         for (int index = 0; index < operands; ++index) {
             writer.write(values[position + static_cast<std::size_t>(index)], bitsCount);
         }
@@ -281,17 +261,14 @@ std::vector<std::uint8_t> enigmaCompress(const std::vector<std::uint8_t> &data)
         incTile = decision.nextIncTile;
     }
 
-    std::vector<std::uint8_t> out {
-        static_cast<std::uint8_t>(bitsCount & 0xFF),
-        0,
-        static_cast<std::uint8_t>((bestIncTile >> 8) & 0xFF),
-        static_cast<std::uint8_t>(bestIncTile & 0xFF),
-        static_cast<std::uint8_t>((staticTile >> 8) & 0xFF),
-        static_cast<std::uint8_t>(staticTile & 0xFF),
+    std::vector<std::uint8_t> out{
+        static_cast<std::uint8_t>(bitsCount & 0xFF),          0,
+        static_cast<std::uint8_t>((bestIncTile >> 8) & 0xFF), static_cast<std::uint8_t>(bestIncTile & 0xFF),
+        static_cast<std::uint8_t>((staticTile >> 8) & 0xFF),  static_cast<std::uint8_t>(staticTile & 0xFF),
     };
     const auto payload = writer.toBytes();
     out.insert(out.end(), payload.begin(), payload.end());
     return out;
 }
 
-} // namespace retrolarium::core
+}  // namespace retrolarium::core

@@ -17,12 +17,11 @@ namespace {
 
 // A UTF-8 BOM, written as bytes so the constant does not depend on the
 // source file's own encoding.
-const std::string kBom {char(0xEF), char(0xBB), char(0xBF)};
+const std::string kBom{char(0xEF), char(0xBB), char(0xBF)};
 
 int failures = 0;
 
-std::vector<std::uint8_t> fromHex(const std::string &text)
-{
+std::vector<std::uint8_t> fromHex(const std::string& text) {
     const auto nibble = [](char character) -> int {
         if (character >= '0' && character <= '9') return character - '0';
         if (character >= 'a' && character <= 'f') return character - 'a' + 10;
@@ -40,8 +39,7 @@ std::vector<std::uint8_t> fromHex(const std::string &text)
     return out;
 }
 
-std::string toHex(const std::vector<std::uint8_t> &data)
-{
+std::string toHex(const std::vector<std::uint8_t>& data) {
     static constexpr char kDigits[] = "0123456789abcdef";
     std::string out;
     out.reserve(data.size() * 2);
@@ -52,10 +50,9 @@ std::string toHex(const std::vector<std::uint8_t> &data)
     return out;
 }
 
-} // namespace
+}  // namespace
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char* argv[]) {
     if (argc != 2) {
         std::cerr << "usage: retrolarium-core-enigma-golden-tests <corpus.txt>\n";
         return 2;
@@ -94,8 +91,7 @@ int main(int argc, char *argv[])
                 std::cerr << "FAIL: unexpected corpus schema " << value << '\n';
                 ++failures;
             }
-        } else if (key == "schema_version" || key == "generator"
-            || key == "unreachable_modes") {
+        } else if (key == "schema_version" || key == "generator" || key == "unreachable_modes") {
             continue;
         } else if (key == "case" || key == "encode-case") {
             fields >> name;
@@ -129,22 +125,20 @@ int main(int argc, char *argv[])
             }
             ++cases;
             try {
-                const auto actual = encoding
-                    ? retrolarium::core::enigmaCompress(plain)
-                    : retrolarium::core::enigmaDecompress(compressed, baseTile);
+                const auto actual = encoding ? retrolarium::core::enigmaCompress(plain)
+                                             : retrolarium::core::enigmaDecompress(compressed, baseTile);
                 if (actual != expected) {
-                    std::cerr << "FAIL: " << name << "\n  got    " << toHex(actual)
-                              << "\n  wanted " << toHex(expected) << '\n';
+                    std::cerr << "FAIL: " << name << "\n  got    " << toHex(actual) << "\n  wanted " << toHex(expected)
+                              << '\n';
                     ++failures;
                 }
-                if (encoding
-                    && retrolarium::core::enigmaDecompress(actual, 0) != plain) {
+                if (encoding && retrolarium::core::enigmaDecompress(actual, 0) != plain) {
                     // A stream the encoder emits must decode back to its input,
                     // or agreeing with the oracle would prove nothing.
                     std::cerr << "FAIL: " << name << " does not round-trip\n";
                     ++failures;
                 }
-            } catch (const retrolarium::core::EnigmaError &error) {
+            } catch (const retrolarium::core::EnigmaError& error) {
                 std::cerr << "FAIL: " << name << " rejected: " << error.what() << '\n';
                 ++failures;
             }
@@ -156,12 +150,12 @@ int main(int argc, char *argv[])
 
     // Broken streams are refused: never decoded outside the code table,
     // for ever, or past the plane they could fill.
-    for (const char *broken : {"0000000000000000", "2000000000008000000001fc0000"}) {
+    for (const char* broken : {"0000000000000000", "2000000000008000000001fc0000"}) {
         try {
             (void)retrolarium::core::enigmaDecompress(fromHex(broken));
             std::cerr << "FAIL: the broken stream " << broken << " decoded\n";
             ++failures;
-        } catch (const retrolarium::core::EnigmaError &) {
+        } catch (const retrolarium::core::EnigmaError&) {
         }
     }
 
