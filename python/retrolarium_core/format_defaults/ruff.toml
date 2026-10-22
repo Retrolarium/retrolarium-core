@@ -1,0 +1,7 @@
+# Retrolarium's default Python format (ruff format); a repository's own
+# ruff.toml or [tool.ruff] replaces it.
+line-length = 120
+
+[format]
+quote-style = "double"
+line-ending = "lf"

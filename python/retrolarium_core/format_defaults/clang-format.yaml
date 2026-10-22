@@ -1,0 +1,14 @@
+# Retrolarium's default C and C++ format; a repository's own .clang-format
+# replaces it.
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 120
+AccessModifierOffset: -4
+DerivePointerAlignment: false
+PointerAlignment: Left
+IncludeBlocks: Preserve
+# Include order can matter (windows.h before shellapi.h); it stays as written
+SortIncludes: Never
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+LineEnding: LF

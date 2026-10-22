@@ -21,4 +21,4 @@ dependencies = []
 where = ["python"]
 
 [tool.setuptools.package-data]
-retrolarium_core = ["schemas/*.json", "profiles/*.json", "name_guard.sha256"]
+retrolarium_core = ["schemas/*.json", "profiles/*.json", "name_guard.sha256", "format_defaults/*"]

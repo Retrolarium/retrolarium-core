@@ -16,14 +16,15 @@ skip them. RETROLARIUM_HOOKS_MAKE=0 skips the make targets. `--env NAME=VALUE`
 (repeatable) sets a variable for the hooks and the make targets they run; the
 kit's `rltool hooks install` sets RLTOOL that way, for the game repositories.
 
-`markdown` formats the Markdown files Git tracks (third_party trees aside) with
-mdformat and its mdformat-gfm plugin, as the repository's .mdformat.toml says;
---check only reports. Without mdformat it says in capitals that nothing was
-checked. A Makefile can run this file by its path, without PYTHONPATH.
+`format` formats the files Git tracks, each language with its formatter
+(retrolarium_core.formatting: Markdown, Python, C and C++, Lua, PowerShell,
+JSON, TOML, Java, shell); --check only reports. A formatter that is not
+installed is named in capitals and skipped. `markdown` is its old name. A
+Makefile can run this file by its path, without PYTHONPATH.
 
     python -m retrolarium_core.hooks install [REPO] [--force] [--env NAME=VALUE]...
     python -m retrolarium_core.hooks uninstall [REPO]
-    python -m retrolarium_core.hooks markdown [REPO] [--check]
+    python -m retrolarium_core.hooks format [REPO] [--check]
 """
 
 from __future__ import annotations
@@ -38,7 +39,7 @@ import sys
 
 if not __package__:  # run by its path, as a Makefile does
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from retrolarium_core import stop_words  # noqa: E402
+from retrolarium_core import formatting, stop_words  # noqa: E402
 
 HOOKS = ("pre-commit", "commit-msg", "pre-push")
 MARKER = "# retrolarium_core.hooks"
@@ -122,19 +123,9 @@ def make_targets(repo: Path) -> list[str]:
 
 
 def markdown(repo: Path, check: bool) -> int:
-    """Format (or with check, only check) the tracked Markdown files."""
-    listed = _git(repo, "ls-files", "-z", "--", "*.md", ":!:third_party/**", ":!:**/third_party/**")
-    files = [name for name in listed.split("\0") if name]
-    if not files:
-        return 0
-    try:
-        import mdformat  # noqa: F401
-    except ImportError:
-        print("MARKDOWN FORMAT NOT CHECKED: mdformat is not installed "
-              "(pip install mdformat mdformat-gfm)", file=sys.stderr)
-        return 0
-    command = [sys.executable, "-m", "mdformat", *(["--check"] if check else []), *files]
-    return subprocess.run(command, cwd=repo).returncode
+    """Format (or with check, only check) the tracked files; the old name of
+    retrolarium_core.formatting.run."""
+    return formatting.run(repo, check)
 
 
 def _stop_words(*args: str, stdin: str | None = None) -> int:
@@ -172,9 +163,10 @@ def main(argv: list[str] | None = None) -> int:
     installing.add_argument("--env", action="append", default=[], metavar="NAME=VALUE",
                             help="a variable for the hooks and their make targets (repeatable)")
     commands.add_parser("uninstall").add_argument("repo", nargs="?", type=Path, default=Path("."))
-    formatting = commands.add_parser("markdown")
-    formatting.add_argument("repo", nargs="?", type=Path, default=Path("."))
-    formatting.add_argument("--check", action="store_true", help="report, change nothing")
+    for name in ("format", "markdown"):
+        formatting_parser = commands.add_parser(name)
+        formatting_parser.add_argument("repo", nargs="?", type=Path, default=Path("."))
+        formatting_parser.add_argument("--check", action="store_true", help="report, change nothing")
     running = commands.add_parser("run")
     running.add_argument("hook", choices=HOOKS)
     running.add_argument("args", nargs="*")
@@ -182,7 +174,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "run":
         return run(args.hook, args.args, Path(_git(Path("."), "rev-parse", "--show-toplevel")))
-    if args.command == "markdown":
+    if args.command in ("format", "markdown"):
         return markdown(args.repo.resolve(), args.check)
     repo = Path(_git(args.repo, "rev-parse", "--show-toplevel"))
     if args.command == "install":

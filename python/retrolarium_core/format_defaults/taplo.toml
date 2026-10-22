@@ -1,0 +1,7 @@
+# Retrolarium's default TOML format (Taplo); a repository's own .taplo.toml
+# replaces it.
+[formatting]
+column_width = 120
+indent_string = "  "
+array_auto_collapse = false
+reorder_keys = false
