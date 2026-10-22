@@ -60,8 +60,11 @@ class Language:
 
 
 def _git_files(repo: Path) -> list[str]:
-    listed = subprocess.run(["git", "-C", str(repo), "ls-files", "-z"], capture_output=True, check=True).stdout
-    return [os.fsdecode(raw) for raw in listed.split(b"\0") if raw]
+    """The files Git tracks; none outside a Git checkout."""
+    listed = subprocess.run(["git", "-C", str(repo), "ls-files", "-z"], capture_output=True)
+    if listed.returncode:
+        return []
+    return [os.fsdecode(raw) for raw in listed.stdout.split(b"\0") if raw]
 
 
 def _ignored(repo: Path) -> list[str]:
@@ -383,36 +386,59 @@ def _own_config(repo: Path, language: Language) -> bool:
     return False
 
 
-def run(repo: Path, check: bool = False, out=sys.stderr) -> int:
-    """Format the repository (with check, only list what would change);
-    nonzero when check finds a file to change or a formatter fails."""
+@dataclass(frozen=True)
+class Result:
+    language: str
+    files: int
+    changed: tuple[str, ...] = ()
+    missing: str | None = None
+    error: str | None = None
+
+
+def results(repo: Path, check: bool = False) -> list[Result]:
+    """Format the repository (with check, only find what would change), one
+    result a language that has files."""
     repo = repo.resolve()
     tracked = _git_files(repo)
-    failed = False
+    found = []
     for language in LANGUAGES:
         files = files_for(repo, language.patterns, tracked)
         if not files:
             continue
         missing = language.missing()
         if missing:
-            print(f"{language.name.upper()} FORMAT NOT CHECKED: install {missing}", file=out)
+            found.append(Result(language.name, len(files), missing=missing))
             continue
         status, changed = language.run(repo, files, check, _own_config(repo, language))
         if status:
-            print(f"[ERROR] {language.name}: {' '.join(changed)}", file=out)
+            found.append(Result(language.name, len(files), error=" ".join(changed)))
+        else:
+            found.append(Result(language.name, len(files), tuple(changed)))
+    return found
+
+
+def run(repo: Path, check: bool = False, out=sys.stderr) -> int:
+    """Format the repository (with check, only list what would change);
+    nonzero when check finds a file to change or a formatter fails."""
+    failed = False
+    for result in results(repo, check):
+        if result.missing:
+            print(f"{result.language.upper()} FORMAT NOT CHECKED: install {result.missing}", file=out)
+        elif result.error:
+            print(f"[ERROR] {result.language}: {result.error}", file=out)
             failed = True
-            continue
-        verb = "would change" if check else "formatted"
-        if changed:
+        elif result.changed:
+            verb = "would change" if check else "formatted"
             print(
-                f"[{'FAIL' if check else 'OK'}] {language.name}: {verb} {len(changed)} of {len(files)} file(s)",
+                f"[{'FAIL' if check else 'OK'}] {result.language}: {verb} {len(result.changed)} of "
+                f"{result.files} file(s)",
                 file=out,
             )
-            for name in changed[:20]:
+            for name in result.changed[:20]:
                 print(f"    {name}", file=out)
             failed |= check
         else:
-            print(f"[OK] {language.name}: {len(files)} file(s) formatted", file=out)
+            print(f"[OK] {result.language}: {result.files} file(s) formatted", file=out)
     return 1 if failed else 0
 
 
