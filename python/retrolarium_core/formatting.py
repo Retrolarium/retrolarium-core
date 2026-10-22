@@ -73,8 +73,13 @@ def _ignored(repo: Path) -> list[str]:
     if ignore.is_file():
         for line in ignore.read_text(encoding="utf-8").splitlines():
             line = line.strip()
-            if line and not line.startswith("#"):
-                patterns.append(line.rstrip("/") + "/*" if not any(c in line for c in "*?[") else line)
+            if not line or line.startswith("#"):
+                continue
+            if any(c in line for c in "*?["):
+                patterns.append(line)
+            else:
+                # A plain path names a file, or a folder and everything in it.
+                patterns += [line.rstrip("/"), line.rstrip("/") + "/*"]
     return patterns
 
 
@@ -107,12 +112,19 @@ def _call(command: list[str], repo: Path) -> subprocess.CompletedProcess:
 
 
 def _changed_by_compare(repo: Path, files: list[str], format_text: Callable[[str, str], str], check: bool) -> list[str]:
-    """Format each file through a text function; write it, or only list it."""
+    """Format each file through a text function; write it, or only list it.
+    A formatter whose second pass still changes its own output (StyLua does
+    on some calls) runs until the text is stable, up to three passes."""
     changed = []
     for name in files:
         path = repo / name
         original = path.read_bytes().decode("utf-8")
         formatted = format_text(name, original)
+        for _ in range(2):
+            again = format_text(name, formatted)
+            if again == formatted:
+                break
+            formatted = again
         if formatted != original:
             changed.append(name)
             if not check:
@@ -289,8 +301,13 @@ def _java(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, li
             return 1, [result.stderr.strip()]
         stale = [line.strip().replace(os.sep, "/") for line in result.stdout.splitlines() if line.strip()]
         changed.extend(stale)
-        if stale and not check:
+        # A second pass can still move a reflowed string, so fix until stable.
+        for _ in range(3):
+            if not stale or check:
+                break
             _call(["java", "-jar", str(jar), "--aosp", "--replace", *stale], repo)
+            again = _call(["java", "-jar", str(jar), "--aosp", "--dry-run", *stale], repo)
+            stale = [line.strip().replace(os.sep, "/") for line in again.stdout.splitlines() if line.strip()]
     return 0, changed
 
 

@@ -4,7 +4,6 @@
     IncludeRules = @(
         'PSPlaceOpenBrace',
         'PSPlaceCloseBrace',
-        'PSUseConsistentIndentation',
         'PSUseConsistentWhitespace',
         'PSAlignAssignmentStatement',
         'PSUseCorrectCasing'
@@ -12,7 +11,7 @@
     Rules = @{
         PSPlaceOpenBrace = @{ Enable = $true; OnSameLine = $true; NewLineAfter = $true; IgnoreOneLineBlock = $true }
         PSPlaceCloseBrace = @{ Enable = $true; NewLineAfter = $false; IgnoreOneLineBlock = $true; NoEmptyLineBefore = $false }
-        PSUseConsistentIndentation = @{ Enable = $true; IndentationSize = 4; Kind = 'space'; PipelineIndentation = 'IncreaseIndentationForFirstPipeline' }
+        # Indentation stays as written: the rule moves backtick continuations to column 0
         PSUseConsistentWhitespace = @{ Enable = $true; CheckOpenBrace = $true; CheckOpenParen = $true; CheckOperator = $true; CheckSeparator = $true; CheckPipe = $true }
         PSAlignAssignmentStatement = @{ Enable = $false }
         PSUseCorrectCasing = @{ Enable = $true }

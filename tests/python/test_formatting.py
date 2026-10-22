@@ -17,15 +17,20 @@ class FilesForTests(unittest.TestCase):
                 "archive/d.py",
                 "games/e.md",
                 "games/f.py",
+                "config/records.json",
+                "config/kept.json",
             ):
                 (repo / name).parent.mkdir(parents=True, exist_ok=True)
                 (repo / name).write_text("x = 1\n", encoding="utf-8")
-            (repo / ".formatignore").write_text("# frozen\narchive/\ngames/*.py\n", encoding="utf-8")
+            (repo / ".formatignore").write_text(
+                "# frozen\narchive/\ngames/*.py\nconfig/records.json\n", encoding="utf-8"
+            )
             subprocess.run(["git", "init", "-q", str(repo)], check=True)
             subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
 
             self.assertEqual(["a.py"], formatting.files_for(repo, ("*.py",)))
             self.assertEqual(["games/e.md"], formatting.files_for(repo, ("*.md",)))
+            self.assertEqual(["config/kept.json"], formatting.files_for(repo, ("*.json",)))
 
 
 if __name__ == "__main__":
