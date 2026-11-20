@@ -21,13 +21,16 @@ without unpacking it: a compressed block's bounds are known only after it is
 unpacked. The editor cannot show graphics without unpacking them, nor save them
 without packing them again.
 
-This is not hypothetical. In `flicky_src` the four modules
-`scripts/formats/{nemesis,enigma}_{dec,enc}.py` are already used both by the
-source build (`Makefile` → `build.unpack_data`) and by the graphics editor
-(`authoring/graphics_studio_model.py`). They also show why there must be one
-implementation: the packer takes the original compressed bytes as a reference
-and returns them verbatim when the content did not change. Two independent
-implementations would silently corrupt the bytes on a round trip.
+Flicky's source reconstruction supplies the resource layout and the user's ROM.
+The kit's `games/flicky/content.py` imports that source snapshot, and
+`games/flicky/workspace/graphics.py` reads and stages its graphics documents
+through `retrolarium_core.tool` and the core's `rlcore` codecs. Studio's
+`plugins/games/flicky` supplies the editor and renderer.
+
+These callers share the same preservation rule. When the decoded content did not
+change, a round trip retains the original compressed bytes. The codec's
+reference stream lets edits reuse its original code table. Keeping this logic in
+one implementation makes source builds and editor saves agree.
 
 ## Boundary rules
 
