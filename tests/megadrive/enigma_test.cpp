@@ -1,8 +1,9 @@
 // The Enigma codec against its frozen corpus.
 //
 // retrolarium_core holds the only implementation, which the kit runs as
-// rlcore. The corpus was written by an independent Python port, since
-// removed; it stays the reference the C++ must match byte for byte.
+// rlcore. The historical Python corpus remains the byte-for-byte reference,
+// except two header-repeat expectations were corrected against the 68000
+// dispatch. Hand-packed regressions below cover all six-bit run lengths.
 
 #include <retrolarium/core/megadrive/enigma.hpp>
 
@@ -145,6 +146,38 @@ int main(int argc, char* argv[]) {
         } else {
             std::cerr << "FAIL: unknown corpus key \"" << key << "\"\n";
             ++failures;
+        }
+    }
+
+    // The six-bit commands are 00rrrr (incrementing header tile) and
+    // 01rrrr (static header tile). Flicky's ASM shifts d2 for the repeat
+    // count but retains d1 for dispatch: slots 0/1 increment, 2/3 repeat.
+    // These hand-packed streams are independent of the retired Python oracle.
+    for (const bool fixed : {false, true}) {
+        for (int count = 1; count <= 16; ++count) {
+            for (const int base : {0, 0x300}) {
+                const int command = (fixed ? 0x10 : 0) | (count - 1);
+                const int bits = (command << 10) | (0x7F << 3);
+                const std::vector<std::uint8_t> data{1,
+                                                     0,
+                                                     0,
+                                                     0x10,
+                                                     0,
+                                                     0x20,
+                                                     static_cast<std::uint8_t>(bits >> 8),
+                                                     static_cast<std::uint8_t>(bits & 0xFF)};
+                std::vector<std::uint8_t> wanted;
+                for (int index = 0; index < count; ++index) {
+                    const int tile = base + (fixed ? 0x20 : 0x10 + index);
+                    wanted.push_back(static_cast<std::uint8_t>(tile >> 8));
+                    wanted.push_back(static_cast<std::uint8_t>(tile & 0xFF));
+                }
+                if (retrolarium::core::enigmaDecompress(data, base) != wanted) {
+                    std::cerr << "FAIL: six-bit " << (fixed ? "static" : "incrementing") << " run of " << count
+                              << " at base " << base << "\n";
+                    ++failures;
+                }
+            }
         }
     }
 

@@ -1,16 +1,15 @@
 schema retrolarium.enigma-golden
 schema_version 1
-generator retrolarium_core.oracles.enigma
-unreachable_modes 2,3
+generator legacy-python-oracle-with-68000-dispatch-correction
 case incrementing-run
 base_tile 0
 stream 0000010002001ff80000
 expect 01000101010201030104010501060107
 end
-case incrementing-run-mode1
+case static-header-run
 base_tile 0
 stream 0000010002004ff80000
-expect 0100010101020103
+expect 0200020002000200
 end
 case repeat-decoded
 base_tile 0
@@ -65,7 +64,7 @@ end
 case mixed-commands
 base_tile 0
 stream 0400040005000a0952847f800000
-expect 0400040104020002000200080009000a04030404
+expect 0400040104020002000200080009000a05000500
 end
 case empty
 base_tile 0

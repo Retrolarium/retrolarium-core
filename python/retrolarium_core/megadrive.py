@@ -161,12 +161,21 @@ def cartridge_checksum(data: bytes, end: int | None = None) -> int:
     """Return the standard 16-bit big-endian sum from file offset 0x200 to
     `end` (the end of the file by default)."""
     total = 0
-    for offset in range(0x200, len(data) if end is None else min(end, len(data)), 2):
-        word = data[offset : offset + 2]
+    limit = len(data) if end is None else min(end, len(data))
+    for offset in range(0x200, limit, 2):
+        word = data[offset : min(offset + 2, limit)]
         if len(word) == 1:
             word += b"\0"
         total = (total + int.from_bytes(word, "big")) & 0xFFFF
     return total
+
+
+def _cartridge_checksum_end(data: bytes) -> int:
+    # Header addresses are CPU addresses; the checksum reads file offsets.
+    # An absent/short declared range, or a truncated image, uses the available
+    # payload. A valid shorter range excludes padding, including partial words.
+    size = _u32(data, 0x1A4) - _u32(data, 0x1A0) + 1
+    return size if 0x200 <= size <= len(data) else len(data)
 
 
 def stamp_cartridge_checksum(data: bytes) -> bytes:
@@ -176,9 +185,7 @@ def stamp_cartridge_checksum(data: bytes) -> bytes:
     stamped = bytearray(data)
     # The boot code sums up to the ROM end the header gives: padding past it
     # (or a file cut short of it) does not count.
-    rom_end = int.from_bytes(data[0x1A4:0x1A8], "big")
-    end = rom_end + 1 if 0x200 < rom_end < len(data) else None
-    stamped[0x18E:0x190] = cartridge_checksum(data, end).to_bytes(2, "big")
+    stamped[0x18E:0x190] = cartridge_checksum(data, _cartridge_checksum_end(data)).to_bytes(2, "big")
     return bytes(stamped)
 
 
@@ -233,7 +240,7 @@ def parse_megadrive(data: bytes, source: Path | None = None) -> MegaDriveImage:
     if not header.rom_start <= reset_vector.address <= actual_rom_end:
         raise MegaDriveError(f"reset vector 0x{reset_vector.raw_value:08X} resolves outside the file-backed ROM range")
 
-    computed_checksum = cartridge_checksum(data)
+    computed_checksum = cartridge_checksum(data, _cartridge_checksum_end(data))
     if header.checksum == 0:
         checksum_status = "absent"
     elif header.checksum == computed_checksum:

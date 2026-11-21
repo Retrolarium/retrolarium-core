@@ -128,14 +128,16 @@ std::vector<std::uint8_t> enigmaDecompress(const std::vector<std::uint8_t>& data
         }
         // Codes are seven bits, except that a leading zero marks a six-bit one;
         // the engine reads seven and hands the spare bit back.
-        int code = reader.read(7);
+        const int code = reader.read(7);
+        int repeat = code & 0x0F;
         if (code < 0x40) {
-            code >>= 1;
+            // The engine retains d1 for dispatch and shifts only d2 for
+            // the six-bit repeat count. Shifting both loses static runs.
+            repeat = (code >> 1) & 0x0F;
             reader.giveBack(1);
         }
 
         const int mode = (code >> 4) & 0x07;
-        const int repeat = code & 0x0F;
 
         switch (mode) {
             case 0:
