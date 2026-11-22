@@ -51,10 +51,14 @@ From the root of this repository:
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-ctest --test-dir build --output-on-failure
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
 python tools/test.py --suite python
 ```
+
+Native cases are registered once for CTest and `tools/test.py`; both use the
+same arguments and expected exit codes. `make` selects `python` on Windows and
+`python3` elsewhere; `make PYTHON=...` overrides that choice.
 
 Retrolarium Studio adds the core with `add_subdirectory` from a
 `retrolarium-core` checkout beside it, without the core's tests: run them here.

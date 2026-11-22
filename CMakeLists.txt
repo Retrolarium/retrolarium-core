@@ -74,55 +74,64 @@ if(RETROLARIUM_CORE_BUILD_CLI)
 endif()
 
 if(RETROLARIUM_CORE_BUILD_TESTS AND BUILD_TESTING)
-    add_executable(retrolarium-core-nemesis-tests tests/megadrive/nemesis_test.cpp)
-    target_link_libraries(retrolarium-core-nemesis-tests PRIVATE retrolarium_core)
-    retrolarium_core_enable_warnings(retrolarium-core-nemesis-tests)
-    add_test(NAME core.nemesis_parity
-        COMMAND retrolarium-core-nemesis-tests
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/megadrive/nemesis_golden.txt
-    )
+    # One registration supplies CTest and the portable Python runner.
+    function(retrolarium_core_add_test name target)
+        cmake_parse_arguments(TEST "" "EXPECTED_EXIT" "ARGS" ${ARGN})
+        if(NOT DEFINED TEST_EXPECTED_EXIT)
+            set(TEST_EXPECTED_EXIT 0)
+        endif()
+        set(command_arguments)
+        set(json_arguments)
+        foreach(argument IN LISTS TEST_ARGS)
+            if(argument MATCHES "^repo:(.*)$")
+                list(APPEND command_arguments "${CMAKE_CURRENT_SOURCE_DIR}/${CMAKE_MATCH_1}")
+            elseif(argument MATCHES "^bin:(.*)$")
+                list(APPEND command_arguments "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_MATCH_1}")
+            else()
+                list(APPEND command_arguments "${argument}")
+            endif()
+            string(REPLACE "\\" "\\\\" escaped "${argument}")
+            string(REPLACE "\"" "\\\"" escaped "${escaped}")
+            list(APPEND json_arguments "\"${escaped}\"")
+        endforeach()
+        string(JOIN ", " json_arguments ${json_arguments})
+        set(entry "  {\"name\": \"${name}\", \"program\": \"$<TARGET_FILE_NAME:${target}>\", \"arguments\": [${json_arguments}], \"expected_exit\": ${TEST_EXPECTED_EXIT}}")
+        set_property(GLOBAL APPEND PROPERTY retrolarium_core_test_entries "${entry}")
+        if(TEST_EXPECTED_EXIT EQUAL 0)
+            add_test(NAME ${name} COMMAND $<TARGET_FILE:${target}> ${command_arguments})
+        else()
+            string(JOIN "|" packed_arguments ${command_arguments})
+            add_test(NAME ${name}
+                COMMAND ${CMAKE_COMMAND}
+                    -DRLCORE=$<TARGET_FILE:${target}>
+                    "-DARGUMENTS=${packed_arguments}"
+                    -DEXPECTED=${TEST_EXPECTED_EXIT}
+                    -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/expect_exit.cmake
+            )
+        endif()
+    endfunction()
 
-    add_executable(retrolarium-core-enigma-tests tests/megadrive/enigma_test.cpp)
-    target_link_libraries(retrolarium-core-enigma-tests PRIVATE retrolarium_core)
-    retrolarium_core_enable_warnings(retrolarium-core-enigma-tests)
-    add_test(NAME core.enigma_parity
-        COMMAND retrolarium-core-enigma-tests
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/megadrive/enigma_golden.txt
-    )
+    foreach(codec IN ITEMS nemesis enigma)
+        add_executable(retrolarium-core-${codec}-tests tests/megadrive/${codec}_test.cpp)
+        target_link_libraries(retrolarium-core-${codec}-tests PRIVATE retrolarium_core)
+        retrolarium_core_enable_warnings(retrolarium-core-${codec}-tests)
+        retrolarium_core_add_test(core.${codec}_parity retrolarium-core-${codec}-tests
+            ARGS repo:tests/fixtures/megadrive/${codec}_golden.txt)
+    endforeach()
 
-    # A host-independent manifest for the Python runner, including cross-built
-    # Windows programs tested on Windows. Paths are resolved by tools/test.py.
-    set(core_tests
-        "  {\"name\": \"core.nemesis_parity\", \"program\": \"$<TARGET_FILE_NAME:retrolarium-core-nemesis-tests>\", \"arguments\": [\"repo:tests/fixtures/megadrive/nemesis_golden.txt\"]},\n"
-        "  {\"name\": \"core.enigma_parity\", \"program\": \"$<TARGET_FILE_NAME:retrolarium-core-enigma-tests>\", \"arguments\": [\"repo:tests/fixtures/megadrive/enigma_golden.txt\"]}"
-    )
-    string(JOIN "" core_tests ${core_tests})
-
-    # rlcore's exit codes: a malformed or out-of-range base tile is a usage
-    # error (2) before any file is opened; a missing input is a file error (3).
     if(RETROLARIUM_CORE_BUILD_CLI)
-        set(missing ${CMAKE_CURRENT_BINARY_DIR}/no-such-input.eni)
-        set(unused ${CMAKE_CURRENT_BINARY_DIR}/unused-output.bin)
         foreach(case IN ITEMS "suffix|12abc|2" "range|70000|2" "sign|-1|2" "hex|0x10|3" "decimal|65535|3")
             string(REPLACE "|" ";" fields "${case}")
             list(GET fields 0 name)
             list(GET fields 1 tile)
             list(GET fields 2 expected)
-            string(APPEND core_tests
-                ",\n  {\"name\": \"core.cli_base_tile_${name}\", \"program\": \"$<TARGET_FILE_NAME:rlcore>\", \"arguments\": [\"enigma\", \"decompress\", \"bin:no-such-input.eni\", \"bin:unused-output.bin\", \"${tile}\"], \"expected_exit\": ${expected}}"
-            )
-            add_test(NAME core.cli_base_tile_${name}
-                COMMAND ${CMAKE_COMMAND}
-                    -DRLCORE=$<TARGET_FILE:rlcore>
-                    -DARGUMENTS=enigma|decompress|${missing}|${unused}|${tile}
-                    -DEXPECTED=${expected}
-                    -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/expect_exit.cmake
-            )
+            retrolarium_core_add_test(core.cli_base_tile_${name} rlcore
+                ARGS enigma decompress bin:no-such-input.eni bin:unused-output.bin ${tile}
+                EXPECTED_EXIT ${expected})
         endforeach()
     endif()
-endif()
-
-if(RETROLARIUM_CORE_BUILD_TESTS AND BUILD_TESTING)
+    get_property(core_tests GLOBAL PROPERTY retrolarium_core_test_entries)
+    string(JOIN ",\n" core_tests ${core_tests})
     file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/tests.json CONTENT "[\n${core_tests}\n]\n")
 endif()
 
