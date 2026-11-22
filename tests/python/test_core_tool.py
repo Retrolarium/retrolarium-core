@@ -14,6 +14,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "python"))
 
@@ -55,6 +56,117 @@ class FindCoreToolTest(unittest.TestCase):
                 del os.environ[core_tool.ENVIRONMENT_OVERRIDE]
             else:
                 os.environ[core_tool.ENVIRONMENT_OVERRIDE] = previous
+
+
+def fake_rlcore(folder: Path, version: str, command: str = "sys.stdout.write('{\"size\": 0}')") -> Path:
+    """An rlcore stand-in: a Python script that reports `version` and runs
+    the statement `command` for any other command."""
+    script = folder / "fake_rlcore.py"
+    script.write_text(
+        f"import sys, time\nif sys.argv[1:] == ['version']:\n    print({version!r})\nelse:\n    {command}\n",
+        encoding="utf-8",
+    )
+    if os.name == "nt":
+        launcher = folder / "rlcore.bat"
+        launcher.write_text(f'@"{sys.executable}" "{script}" %*\r\n', encoding="utf-8")
+    else:
+        launcher = folder / "rlcore"
+        launcher.write_text(f"#!{sys.executable}\n" + script.read_text(encoding="utf-8"), encoding="utf-8")
+        launcher.chmod(0o755)
+    return launcher
+
+
+class PinnedVersionTest(unittest.TestCase):
+    def setUp(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.folder = Path(directory.name)
+        environment = mock.patch.dict(os.environ)
+        environment.start()
+        self.addCleanup(environment.stop)
+
+    def test_an_rlcore_of_another_version_is_refused(self) -> None:
+        os.environ[core_tool.ENVIRONMENT_OVERRIDE] = str(fake_rlcore(self.folder, "0.0.1"))
+        with self.assertRaises(CoreToolError) as raised:
+            core_tool.run(["nemesis", "decompress", "a", "b"])
+        message = str(raised.exception)
+        self.assertIn("0.0.1", message)
+        self.assertIn(core_tool.RLCORE_VERSION, message)
+        self.assertIn(os.environ[core_tool.ENVIRONMENT_OVERRIDE], message)
+
+    def test_an_rlcore_of_this_version_runs(self) -> None:
+        os.environ[core_tool.ENVIRONMENT_OVERRIDE] = str(fake_rlcore(self.folder, core_tool.RLCORE_VERSION))
+        self.assertEqual({"size": 0}, core_tool.run(["nemesis", "decompress", "a", "b"]))
+        self.assertEqual(core_tool.RLCORE_VERSION, core_tool.version())
+
+
+class FailureTest(unittest.TestCase):
+    def setUp(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.folder = Path(directory.name)
+        environment = mock.patch.dict(os.environ)
+        environment.start()
+        self.addCleanup(environment.stop)
+
+    def use(self, command: str) -> None:
+        os.environ[core_tool.ENVIRONMENT_OVERRIDE] = str(fake_rlcore(self.folder, core_tool.RLCORE_VERSION, command))
+
+    def test_output_that_is_not_utf8_is_replaced_not_fatal(self) -> None:
+        self.use('sys.stdout.buffer.write(b\'{"output": "\\xff"}\')')
+        self.assertEqual({"output": "\ufffd"}, core_tool.run(["nemesis", "decompress", "a", "b"]))
+        self.use("sys.stderr.buffer.write(b'cannot read \\xff.nem'); sys.exit(3)")
+        with self.assertRaises(CoreToolError) as raised:
+            core_tool.run(["nemesis", "decompress", "a", "b"])
+        self.assertIn("exit code 3", str(raised.exception))
+        self.assertIn("\ufffd.nem", str(raised.exception))
+
+    def test_a_hung_rlcore_is_a_core_tool_error(self) -> None:
+        self.use("time.sleep(5)")
+        with self.assertRaises(CoreToolError) as raised:
+            core_tool.run(["nemesis", "decompress", "a", "b"], timeout=1)
+        self.assertIn("did not finish", str(raised.exception))
+
+    @unittest.skipIf(os.name == "nt", "Windows runs any file it is handed")
+    def test_an_rlcore_that_cannot_start_is_a_core_tool_error(self) -> None:
+        stand_in = self.folder / "rlcore"
+        stand_in.write_bytes(b"not a program")
+        stand_in.chmod(0o644)
+        os.environ[core_tool.ENVIRONMENT_OVERRIDE] = str(stand_in)
+        with self.assertRaises(CoreToolError):
+            core_tool.run(["version"])
+
+
+class LookupOrderTest(unittest.TestCase):
+    def setUp(self) -> None:
+        environment = mock.patch.dict(os.environ)
+        environment.start()
+        self.addCleanup(environment.stop)
+        os.environ.pop(core_tool.ENVIRONMENT_OVERRIDE, None)
+        os.environ.pop(core_tool.DEVELOPMENT_SWITCH, None)
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.build = Path(directory.name) / "build" / "rlcore"
+        self.build.parent.mkdir()
+        self.build.write_bytes(b"")
+        for name, value in (("_packaged_candidates", lambda: []), ("_checkout_candidates", lambda: [self.build])):
+            patcher = mock.patch.object(core_tool, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_a_build_tree_is_ignored_without_the_development_switch(self) -> None:
+        with mock.patch.object(core_tool.shutil, "which", lambda name: None):
+            with self.assertRaises(CoreToolError) as raised:
+                core_tool.find_core_tool()
+            self.assertIn(core_tool.DEVELOPMENT_SWITCH, str(raised.exception))
+            os.environ[core_tool.DEVELOPMENT_SWITCH] = "1"
+            self.assertEqual(self.build, core_tool.find_core_tool())
+
+    def test_path_comes_before_a_build_tree(self) -> None:
+        os.environ[core_tool.DEVELOPMENT_SWITCH] = "1"
+        on_path = str(self.build.parent.parent / "rlcore-on-path")
+        with mock.patch.object(core_tool.shutil, "which", lambda name: on_path):
+            self.assertEqual(Path(on_path), core_tool.find_core_tool())
 
 
 @unittest.skipIf(available() is None, "rlcore has not been built")

@@ -11,6 +11,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -161,6 +162,37 @@ int main(int argc, char* argv[]) {
             ++failures;
         } catch (const retrolarium::core::NemesisError&) {
         }
+    }
+
+    // A reference whose code table the decoder would read differently from
+    // the encoder is refused, not re-encoded into a stream that decodes to
+    // something else: a code that is a prefix of another (00 and 0), and a
+    // table code (11) that shadows the inline escape when the data needs an
+    // inline run.
+    const std::vector<std::uint8_t> flat(32, 0x55);
+    const std::vector<std::uint8_t> sevens(32, 0x77);
+    const std::vector<std::pair<const char*, const std::vector<std::uint8_t>*>> refused = {
+        {"00010572000100ff", &flat},
+        {"0001057203ff", &sevens},
+    };
+    for (const auto& [reference, plainData] : refused) {
+        try {
+            (void)retrolarium::core::nemesisCompress(*plainData, fromHex(reference));
+            std::cerr << "FAIL: the reference " << reference << " was used to re-encode\n";
+            ++failures;
+        } catch (const retrolarium::core::NemesisError&) {
+        }
+    }
+    // The shadowing table still serves data that needs no inline run.
+    try {
+        const auto repacked = retrolarium::core::nemesisCompress(flat, fromHex("0001057203ff"));
+        if (retrolarium::core::nemesisDecompress(repacked) != flat) {
+            std::cerr << "FAIL: the escape-shadowing reference does not round-trip\n";
+            ++failures;
+        }
+    } catch (const retrolarium::core::NemesisError& error) {
+        std::cerr << "FAIL: the escape-shadowing reference was refused: " << error.what() << '\n';
+        ++failures;
     }
 
     if (cases == 0) {

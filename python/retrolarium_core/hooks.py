@@ -45,6 +45,8 @@ HOOKS = ("pre-commit", "commit-msg", "pre-push")
 MARKER = "# retrolarium_core.hooks"
 MAKE_TARGETS = ("lint", "format-check")
 _CORE = Path(__file__).resolve().parents[1]
+# A name the generated sh script can export.
+_VARIABLE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -60,22 +62,33 @@ def _quote(value: str) -> str:
     return "'" + value.replace("'", "'\\''") + "'"
 
 
+def _check_names(environment: dict[str, str]) -> None:
+    for name in environment:
+        if not _VARIABLE.fullmatch(name):
+            raise ValueError(f"{name!r} is not a shell variable name")
+
+
 def script(hook: str, environment: dict[str, str] | None = None) -> str:
-    python = Path(sys.executable).as_posix()
-    core = _CORE.as_posix()
+    # Every path and value is single-quoted: a folder named with a space, a
+    # $ or a quote stays one word and is never expanded by the shell.
+    environment = environment or {}
+    _check_names(environment)
+    python = _quote(Path(sys.executable).as_posix())
+    core = _quote(_CORE.as_posix())
     separator = ";" if os.name == "nt" else ":"
-    exports = "".join(f"export {name}={_quote(value)}\n" for name, value in sorted((environment or {}).items()))
+    exports = "".join(f"export {name}={_quote(value)}\n" for name, value in sorted(environment.items()))
     return f"""#!/bin/sh
 {MARKER}: reinstall with python -m retrolarium_core.hooks install
-if [ ! -x "{python}" ] && [ ! -f "{python}" ]; then
-    echo "RETROLARIUM HOOKS NOT RUN: {python} is gone; reinstall them" >&2
+if [ ! -x {python} ] && [ ! -f {python} ]; then
+    echo "RETROLARIUM HOOKS NOT RUN: "{python}" is gone; reinstall them" >&2
     exit 0
 fi
-{exports}PYTHONPATH="{core}${{PYTHONPATH:+{separator}$PYTHONPATH}}" exec "{python}" -m retrolarium_core.hooks run {hook} "$@"
+{exports}PYTHONPATH={core}"${{PYTHONPATH:+{separator}$PYTHONPATH}}" exec {python} -m retrolarium_core.hooks run {hook} "$@"
 """
 
 
 def install(repo: Path, force: bool = False, environment: dict[str, str] | None = None) -> list[Path]:
+    _check_names(environment or {})
     folder = hooks_folder(repo)
     folder.mkdir(parents=True, exist_ok=True)
     written = []
@@ -155,6 +168,13 @@ def run(hook: str, args: list[str], repo: Path) -> int:
     raise SystemExit(f"unknown hook {hook}")
 
 
+def _assignment(text: str) -> tuple[str, str]:
+    name, separator, value = text.partition("=")
+    if not separator or not _VARIABLE.fullmatch(name):
+        raise argparse.ArgumentTypeError(f"expected NAME=VALUE with a shell variable name, not {text!r}")
+    return name, value
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="hooks", description=__doc__.split("\n", 1)[0])
     commands = parser.add_subparsers(dest="command", required=True)
@@ -165,6 +185,7 @@ def main(argv: list[str] | None = None) -> int:
         "--env",
         action="append",
         default=[],
+        type=_assignment,
         metavar="NAME=VALUE",
         help="a variable for the hooks and their make targets (repeatable)",
     )
@@ -184,7 +205,7 @@ def main(argv: list[str] | None = None) -> int:
         return markdown(args.repo.resolve(), args.check)
     repo = Path(_git(args.repo, "rev-parse", "--show-toplevel"))
     if args.command == "install":
-        environment = dict(item.split("=", 1) for item in args.env)
+        environment = dict(args.env)
         for path in install(repo, args.force, environment):
             print(f"installed {path}")
         if stop_words.locate(repo) is None:

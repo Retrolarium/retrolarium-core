@@ -23,7 +23,9 @@ A repository's own configuration (`.mdformat.toml`, `ruff.toml` or
 (one Git pathspec glob or folder a line, `#` comments) are left alone.
 
 A formatter that is not installed is reported in capitals and skipped, so a
-missing tool never blocks a commit; `missing_tools` names them. The tools come
+missing tool never blocks a commit; `missing_tools` names them. A file the
+formatter refuses (a syntax error) or that is not UTF-8 is reported with its
+name as an error, and the other files and languages are still formatted. The tools come
 from pip (mdformat, mdformat-gfm, ruff, clang-format, shfmt-py), npm
 (prettier, @taplo/cli, @johnnymorganz/stylua-bin), the PowerShell Gallery
 (PSScriptAnalyzer) and google-java-format's release jar, found through
@@ -55,7 +57,8 @@ class Language:
     name: str
     patterns: tuple[str, ...]
     configs: tuple[str, ...]
-    run: Callable[[Path, list[str], bool, bool], tuple[int, list[str]]]
+    # (repo, files, check, own config) -> (changed files, errors)
+    run: Callable[[Path, list[str], bool, bool], tuple[list[str], list[str]]]
     missing: Callable[[], str | None]
 
 
@@ -107,29 +110,61 @@ def _batches(files: list[str]):
         yield files[start : start + BATCH]
 
 
+def _operands(files: list[str]) -> list[str]:
+    """File names for a formatter's command line, each as ./name: a file
+    named -x.json is then a file, never an option, whatever the tool's own
+    option parser makes of `--`."""
+    return [f"./{name}" for name in files]
+
+
+def _listed(output: str) -> list[str]:
+    """The repository names in a formatter's file list, ./ removed."""
+    names = (line.strip().replace(os.sep, "/") for line in output.splitlines())
+    return [name.removeprefix("./") for name in names if name]
+
+
 def _call(command: list[str], repo: Path) -> subprocess.CompletedProcess:
     return subprocess.run(command, cwd=repo, capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
-def _changed_by_compare(repo: Path, files: list[str], format_text: Callable[[str, str], str], check: bool) -> list[str]:
+def _failure(error: subprocess.CalledProcessError) -> str:
+    """What a formatter said when it refused a file."""
+    output = error.stderr or error.stdout or b""
+    if isinstance(output, bytes):
+        output = output.decode("utf-8", errors="replace")
+    return output.strip() or f"the formatter exited with code {error.returncode}"
+
+
+def _changed_by_compare(
+    repo: Path, files: list[str], format_text: Callable[[str, str], str], check: bool
+) -> tuple[list[str], list[str]]:
     """Format each file through a text function; write it, or only list it.
     A formatter whose second pass still changes its own output (StyLua does
-    on some calls) runs until the text is stable, up to three passes."""
+    on some calls) runs until the text is stable, up to three passes. A file
+    that cannot be formatted is an error of its own; the rest go on."""
     changed = []
+    errors = []
     for name in files:
         path = repo / name
-        original = path.read_bytes().decode("utf-8")
-        formatted = format_text(name, original)
-        for _ in range(2):
-            again = format_text(name, formatted)
-            if again == formatted:
-                break
-            formatted = again
+        try:
+            original = path.read_bytes().decode("utf-8")
+            formatted = format_text(name, original)
+            for _ in range(2):
+                again = format_text(name, formatted)
+                if again == formatted:
+                    break
+                formatted = again
+        except UnicodeDecodeError as error:
+            errors.append(f"{name}: not UTF-8 ({error.reason} at byte {error.start})")
+            continue
+        except subprocess.CalledProcessError as error:
+            errors.append(f"{name}: {_failure(error)}")
+            continue
         if formatted != original:
             changed.append(name)
             if not check:
                 path.write_bytes(formatted.encode("utf-8"))
-    return changed
+    return changed, errors
 
 
 # --- the tools ---------------------------------------------------------------
@@ -150,19 +185,19 @@ def _program_missing(program: str, install: str) -> Callable[[], str | None]:
     return lambda: None if shutil.which(program) else install
 
 
-def _markdown(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, list[str]]:
+def _markdown(repo: Path, files: list[str], check: bool, own: bool) -> tuple[list[str], list[str]]:
     import mdformat
     import tomllib
 
     options = {"wrap": 80, "number": True}
     if own:
         options = tomllib.loads((repo / ".mdformat.toml").read_text(encoding="utf-8"))
-    return 0, _changed_by_compare(
+    return _changed_by_compare(
         repo, files, lambda name, text: mdformat.text(text, options=options, extensions={"gfm", "tables"}), check
     )
 
 
-def _python(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, list[str]]:
+def _python(repo: Path, files: list[str], check: bool, own: bool) -> tuple[list[str], list[str]]:
     options = [] if own else ["--config", str(DEFAULTS / "ruff.toml")]
     ruff = shutil.which("ruff")
 
@@ -176,10 +211,10 @@ def _python(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, 
         )
         return result.stdout.decode("utf-8")
 
-    return 0, _changed_by_compare(repo, files, format_text, check)
+    return _changed_by_compare(repo, files, format_text, check)
 
 
-def _clang(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, list[str]]:
+def _clang(repo: Path, files: list[str], check: bool, own: bool) -> tuple[list[str], list[str]]:
     style = "file" if own else f"file:{DEFAULTS / 'clang-format.yaml'}"
     program = shutil.which("clang-format")
 
@@ -193,10 +228,10 @@ def _clang(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, l
         )
         return result.stdout.decode("utf-8")
 
-    return 0, _changed_by_compare(repo, files, format_text, check)
+    return _changed_by_compare(repo, files, format_text, check)
 
 
-def _lua(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, list[str]]:
+def _lua(repo: Path, files: list[str], check: bool, own: bool) -> tuple[list[str], list[str]]:
     options = [] if own else ["--config-path", str(DEFAULTS / "stylua.toml")]
     stylua = shutil.which("stylua")
 
@@ -210,10 +245,10 @@ def _lua(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, lis
         )
         return result.stdout.decode("utf-8")
 
-    return 0, _changed_by_compare(repo, files, format_text, check)
+    return _changed_by_compare(repo, files, format_text, check)
 
 
-def _powershell(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, list[str]]:
+def _powershell(repo: Path, files: list[str], check: bool, own: bool) -> tuple[list[str], list[str]]:
     settings = repo / "PSScriptAnalyzerSettings.psd1" if own else DEFAULTS / "PSScriptAnalyzerSettings.psd1"
     script = (
         "param([string]$Settings, [string]$Folder)\n"
@@ -248,29 +283,29 @@ def _powershell(repo: Path, files: list[str], check: bool, own: bool) -> tuple[i
             repo,
         )
         if result.returncode:
-            return 1, [result.stderr.strip() or result.stdout.strip()]
+            return [], [result.stderr.strip() or result.stdout.strip()]
         formatted = {
             name: (work / f"{index}.ps1.out").read_bytes().decode("utf-8").replace("\r\n", "\n")
             for index, name in enumerate(files)
         }
-    return 0, _changed_by_compare(repo, files, lambda name, text: formatted[name], check)
+    return _changed_by_compare(repo, files, lambda name, text: formatted[name], check)
 
 
-def _json(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, list[str]]:
+def _json(repo: Path, files: list[str], check: bool, own: bool) -> tuple[list[str], list[str]]:
     options = [] if own else ["--config", str(DEFAULTS / "prettier.json")]
     prettier = shutil.which("prettier")
     changed = []
     for batch in _batches(files):
-        result = _call([prettier, "--list-different", "--no-editorconfig", *options, *batch], repo)
-        changed.extend(line.strip().replace(os.sep, "/") for line in result.stdout.splitlines() if line.strip())
+        result = _call([prettier, "--list-different", "--no-editorconfig", *options, *_operands(batch)], repo)
+        changed.extend(_listed(result.stdout))
         if result.returncode not in (0, 1):
-            return 1, [result.stderr.strip()]
+            return changed, [result.stderr.strip()]
         if not check and result.returncode == 1:
-            _call([prettier, "--write", "--no-editorconfig", *options, *batch], repo)
-    return 0, changed
+            _call([prettier, "--write", "--no-editorconfig", *options, *_operands(batch)], repo)
+    return changed, []
 
 
-def _toml(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, list[str]]:
+def _toml(repo: Path, files: list[str], check: bool, own: bool) -> tuple[list[str], list[str]]:
     options = [] if own else ["--config", str(DEFAULTS / "taplo.toml")]
     taplo = shutil.which("taplo")
 
@@ -280,7 +315,7 @@ def _toml(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, li
         )
         return result.stdout.decode("utf-8")
 
-    return 0, _changed_by_compare(repo, files, format_text, check)
+    return _changed_by_compare(repo, files, format_text, check)
 
 
 def java_format_jar() -> Path | None:
@@ -292,31 +327,31 @@ def java_format_jar() -> Path | None:
     return jars[-1] if jars else None
 
 
-def _java(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, list[str]]:
+def _java(repo: Path, files: list[str], check: bool, own: bool) -> tuple[list[str], list[str]]:
     jar = java_format_jar()
     changed = []
     for batch in _batches(files):
-        result = _call(["java", "-jar", str(jar), "--aosp", "--dry-run", *batch], repo)
+        result = _call(["java", "-jar", str(jar), "--aosp", "--dry-run", *_operands(batch)], repo)
         if result.returncode:
-            return 1, [result.stderr.strip()]
-        stale = [line.strip().replace(os.sep, "/") for line in result.stdout.splitlines() if line.strip()]
+            return changed, [result.stderr.strip()]
+        stale = _listed(result.stdout)
         changed.extend(stale)
         # A second pass can still move a reflowed string, so fix until stable.
         for _ in range(3):
             if not stale or check:
                 break
-            _call(["java", "-jar", str(jar), "--aosp", "--replace", *stale], repo)
-            again = _call(["java", "-jar", str(jar), "--aosp", "--dry-run", *stale], repo)
-            stale = [line.strip().replace(os.sep, "/") for line in again.stdout.splitlines() if line.strip()]
-    return 0, changed
+            _call(["java", "-jar", str(jar), "--aosp", "--replace", *_operands(stale)], repo)
+            again = _call(["java", "-jar", str(jar), "--aosp", "--dry-run", *_operands(stale)], repo)
+            stale = _listed(again.stdout)
+    return changed, []
 
 
-def _shell(repo: Path, files: list[str], check: bool, own: bool) -> tuple[int, list[str]]:
-    result = _call(["shfmt", "-i", "4", "-l", *files], repo)
-    changed = [line.strip().replace(os.sep, "/") for line in result.stdout.splitlines() if line.strip()]
+def _shell(repo: Path, files: list[str], check: bool, own: bool) -> tuple[list[str], list[str]]:
+    result = _call(["shfmt", "-i", "4", "-l", *_operands(files)], repo)
+    changed = _listed(result.stdout)
     if changed and not check:
-        _call(["shfmt", "-i", "4", "-w", *changed], repo)
-    return 0, changed
+        _call(["shfmt", "-i", "4", "-w", *_operands(changed)], repo)
+    return changed, []
 
 
 def _powershell_missing() -> str | None:
@@ -426,11 +461,8 @@ def results(repo: Path, check: bool = False) -> list[Result]:
         if missing:
             found.append(Result(language.name, len(files), missing=missing))
             continue
-        status, changed = language.run(repo, files, check, _own_config(repo, language))
-        if status:
-            found.append(Result(language.name, len(files), error=" ".join(changed)))
-        else:
-            found.append(Result(language.name, len(files), tuple(changed)))
+        changed, errors = language.run(repo, files, check, _own_config(repo, language))
+        found.append(Result(language.name, len(files), tuple(changed), error="; ".join(errors) if errors else None))
     return found
 
 
@@ -441,10 +473,11 @@ def run(repo: Path, check: bool = False, out=sys.stderr) -> int:
     for result in results(repo, check):
         if result.missing:
             print(f"{result.language.upper()} FORMAT NOT CHECKED: install {result.missing}", file=out)
-        elif result.error:
+            continue
+        if result.error:
             print(f"[ERROR] {result.language}: {result.error}", file=out)
             failed = True
-        elif result.changed:
+        if result.changed:
             verb = "would change" if check else "formatted"
             print(
                 f"[{'FAIL' if check else 'OK'}] {result.language}: {verb} {len(result.changed)} of "
@@ -454,7 +487,7 @@ def run(repo: Path, check: bool = False, out=sys.stderr) -> int:
             for name in result.changed[:20]:
                 print(f"    {name}", file=out)
             failed |= check
-        else:
+        elif not result.error:
             print(f"[OK] {result.language}: {result.files} file(s) formatted", file=out)
     return 1 if failed else 0
 

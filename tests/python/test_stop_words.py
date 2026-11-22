@@ -52,6 +52,8 @@ def repository(directory: str) -> Path:
     root = Path(directory) / "repo"
     root.mkdir()
     git(root, "init", "-q")
+    git(root, "config", "user.name", IDENTITY["GIT_AUTHOR_NAME"])
+    git(root, "config", "user.email", IDENTITY["GIT_AUTHOR_EMAIL"])
     return root
 
 
@@ -113,14 +115,31 @@ class ListTests(unittest.TestCase):
     def test_without_a_list_the_check_says_it_did_not_run(self) -> None:
         with tempfile.TemporaryDirectory() as directory, mock.patch.dict(os.environ):
             os.environ[stop_words.ENVIRONMENT] = str(Path(directory) / "missing")
+            # On a developer's machine: a warning, and the check passes.
             result = subprocess.run(
                 [sys.executable, "-m", "retrolarium_core.stop_words", "check", directory],
                 capture_output=True,
                 text=True,
-                env=dict(os.environ, PYTHONPATH=str(CORE)),
+                env=dict(os.environ, PYTHONPATH=str(CORE), CI=""),
             )
             self.assertEqual(0, result.returncode)
             self.assertIn(stop_words.NOT_PERFORMED, result.stderr)
+
+    def test_without_a_list_ci_and_a_push_fail(self) -> None:
+        with tempfile.TemporaryDirectory() as directory, mock.patch.dict(os.environ):
+            os.environ[stop_words.ENVIRONMENT] = str(Path(directory) / "missing")
+            root = repository(directory)
+            cases = ((["check", str(root)], "1"), (["check", str(root)], "true"), (["push", "origin", str(root)], ""))
+            for command, ci in cases:
+                result = subprocess.run(
+                    [sys.executable, "-m", "retrolarium_core.stop_words", *command],
+                    capture_output=True,
+                    text=True,
+                    input="",
+                    env=dict(os.environ, PYTHONPATH=str(CORE), CI=ci),
+                )
+                self.assertEqual(1, result.returncode, (command, ci, result.stderr))
+                self.assertIn(stop_words.NOT_PERFORMED, result.stderr)
 
 
 class RepositoryTests(unittest.TestCase):
@@ -171,6 +190,25 @@ class RepositoryTests(unittest.TestCase):
             zero = "0" * 40
             problems, commits, _ = stop_words.check_push(root, "origin", f"refs/heads/main {second} x {zero}\n", WORDS)
             self.assertEqual((2, 2), (len(problems), commits))
+
+    @unittest.skipIf(os.name == "nt", "Windows file names cannot hold a line break")
+    def test_a_path_with_a_line_break_does_not_hide_the_files_after_it(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = repository(directory)
+            (root / "a\nb.txt").write_text("clean\n", encoding="utf-8")
+            (root / "z.txt").write_text("from examplecorp\n", encoding="utf-8")
+            git(root, "add", ".")
+            self.assertEqual(["z.txt: examplecorp"], stop_words.check_staged(root, WORDS))
+            git(root, "commit", "-q", "-m", "two files")
+            problems, _, blobs = stop_words.check_history(root, WORDS)
+            self.assertEqual(2, blobs)
+            self.assertTrue(any("z.txt" in problem for problem in problems), problems)
+
+    def test_an_object_git_does_not_have_is_an_error(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = repository(directory)
+            with self.assertRaises(stop_words.GitObjectError):
+                list(stop_words._batch(root, ["0" * 40]))
 
     def test_a_second_name_of_the_same_blob_is_checked(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -224,6 +262,7 @@ class HookTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = repository(directory)
             env = {stop_words.ENVIRONMENT: str(Path(directory) / "missing")}
+            env["CI"] = ""  # a missing list only warns outside CI
             (root / "Makefile").write_text('lint:\n\t@test "$$HOOK_PROBE" = "it\'s set"\n', encoding="utf-8")
             git(root, "add", "Makefile")
             hooks.install(root)
@@ -231,6 +270,30 @@ class HookTests(unittest.TestCase):
             hooks.install(root, environment={"HOOK_PROBE": "it's set"})
             accepted = git(root, "commit", "-q", "-m", "with", env=env)
             self.assertEqual(0, accepted.returncode, accepted.stderr)
+
+    @unittest.skipUnless(shutil.which("sh"), "the hooks are sh scripts")
+    def test_paths_and_values_in_a_hook_are_never_expanded(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            gone = Path(directory) / "a b" / "$HOME `x`" / "python"
+            with mock.patch.object(hooks.sys, "executable", str(gone)):
+                text = hooks.script("pre-commit", {"PROBE": "$HOME 'q'"})
+            hook = Path(directory) / "hook"
+            hook.write_text(text, encoding="utf-8", newline="\n")
+            result = subprocess.run(["sh", hook.as_posix()], capture_output=True, text=True)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertIn(f"RETROLARIUM HOOKS NOT RUN: {gone.as_posix()} is gone", result.stderr)
+            self.assertIn("export PROBE='$HOME '\\''q'\\'''", text)
+
+    def test_an_environment_name_must_be_a_shell_variable(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = repository(directory)
+            with self.assertRaises(ValueError):
+                hooks.install(root, environment={"A;rm -rf ~": "x"})
+            self.assertFalse((hooks.hooks_folder(root) / "pre-commit").exists())
+            for bad in ("NOVALUE", "A B=1", "=1"):
+                with self.assertRaises(SystemExit) as raised, mock.patch("sys.stderr"):
+                    hooks.main(["install", str(root), "--env", bad])
+                self.assertEqual(2, raised.exception.code)
 
 
 class ThisRepositoryTests(unittest.TestCase):

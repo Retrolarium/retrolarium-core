@@ -27,6 +27,11 @@ public:
 // run splitting as the single thing to reproduce. Callers that want the
 // original bytes back for unchanged content compare the decoded content first
 // and reuse `reference` verbatim; this function always re-encodes.
+//
+// A reference whose code table the decoder would read differently (one code a
+// prefix of another, an entry out of range) is refused with NemesisError, as
+// is data that needs an inline run when a table code shadows the inline
+// escape. The result is decoded once more and must give `plain` back.
 [[nodiscard]] std::vector<std::uint8_t> nemesisCompress(const std::vector<std::uint8_t>& plain,
                                                         const std::vector<std::uint8_t>& reference);
 

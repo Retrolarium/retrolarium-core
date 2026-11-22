@@ -1,5 +1,7 @@
 # Build output
 build/
+# A bundled rlcore, put there by a release build
+/python/retrolarium_core/_core/
 
 # Python
 __pycache__/

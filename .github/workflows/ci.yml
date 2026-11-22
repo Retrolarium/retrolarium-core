@@ -1,0 +1,87 @@
+# Retrolarium Core's checks: the Python layer on Linux and Windows, the C++
+# library, rlcore and their tests with CMake, and the same C++ tests under
+# AddressSanitizer and UndefinedBehaviorSanitizer.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Python ${{ matrix.python }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.13"]
+    env:
+      # The stop-word list lives outside the repository; a repository secret
+      # supplies it when one is set (retrolarium_core/stop_words.py).
+      STOPWORDS_LIST: ${{ secrets.RETROLARIUM_STOPWORDS }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The stop-word history check reads every commit.
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Unit tests
+        run: python -I -m unittest discover -s tests/python -v
+      - name: Stop words in the tree and the history
+        if: env.STOPWORDS_LIST != '' && matrix.os == 'ubuntu-latest' && matrix.python == '3.13'
+        shell: bash
+        run: |
+          printf '%s\n' "$STOPWORDS_LIST" > "$RUNNER_TEMP/stopwords"
+          export RETROLARIUM_STOPWORDS="$RUNNER_TEMP/stopwords"
+          python python/retrolarium_core/stop_words.py check .
+          python python/retrolarium_core/stop_words.py history .
+
+  cmake:
+    name: CMake and CTest (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: CTest
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: rlcore through the Python bridge
+        shell: bash
+        run: |
+          tool=build/rlcore
+          if [ -f build/Release/rlcore.exe ]; then tool=build/Release/rlcore.exe; fi
+          test -f "$tool"
+          # A relative path: the bridge and the test run from the checkout.
+          RETROLARIUM_CORE="$tool" python -I -m unittest discover -s tests/python -p test_core_tool.py -v 2>&1 | tee bridge.log
+          # The round trips must run, not skip for want of an rlcore.
+          ! grep -q "rlcore has not been built" bridge.log
+
+  sanitize:
+    name: ASan and UBSan (ubuntu-latest)
+    runs-on: ubuntu-latest
+    env:
+      ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DRETROLARIUM_SANITIZE=ON
+      - name: Build
+        run: cmake --build build --parallel
+      - name: CTest
+        run: ctest --test-dir build --output-on-failure

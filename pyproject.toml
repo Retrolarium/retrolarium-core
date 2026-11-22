@@ -3,8 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 # The Python face of Retrolarium Core: container parsers, the disassembly
-# manifest contract, the rlcore bridge and the reference codecs. The C++
-# library and rlcore build with CMake from the same repository.
+# manifest contract, the rlcore bridge and the repository guards. The codecs
+# are C++ only: the library and rlcore build with CMake from the same
+# repository.
 [project]
 name = "retrolarium-core"
 version = "0.5.0"
@@ -21,4 +22,13 @@ dependencies = []
 where = ["python"]
 
 [tool.setuptools.package-data]
-retrolarium_core = ["schemas/*.json", "profiles/*.json", "name_guard.sha256", "format_defaults/*"]
+# _core holds a bundled rlcore (_core/<host>/rlcore[.exe] or _core/rlcore[.exe])
+# when a release build puts one there; retrolarium_core.tool looks for it.
+retrolarium_core = [
+  "schemas/*.json",
+  "profiles/*.json",
+  "name_guard.sha256",
+  "format_defaults/*",
+  "_core/*",
+  "_core/*/*",
+]

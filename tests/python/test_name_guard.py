@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
+import unicodedata
 import unittest
 
 import helpers  # noqa: F401
@@ -28,6 +30,21 @@ def git_repository(files: dict[str, str]) -> tempfile.TemporaryDirectory:
 class WordTests(unittest.TestCase):
     def test_identifiers_split_into_words(self) -> None:
         self.assertEqual(["k", "final", "boss", "max", "lives", "2"], words("kFinalBoss MAX_LIVES2"))
+
+    def test_names_outside_ascii_are_words(self) -> None:
+        self.assertEqual(["кощей", "живёт"], words("КОЩЕЙ живёт"))
+        self.assertEqual(["crème", "brûlée", "2"], words("crèmeBrûlée2"))
+        guard = Guard(frozenset({digest("кощей"), digest("crème brûlée")}), 2)
+        self.assertEqual([(2, "кощей")], guard.matches_text("здесь\nживёт Кощей"))
+        self.assertEqual(["crème brûlée"], guard.matches("the CRÈME_BRÛLÉE sprite"))
+        self.assertEqual(["crème brûlée"], guard.matches(unicodedata.normalize("NFD", "crème brûlée")))
+
+    @unittest.skipUnless(sys.platform.startswith("linux"), "a file name that is not UTF-8 needs Linux")
+    def test_a_path_that_is_not_utf8_is_still_listed(self) -> None:
+        with git_repository({"a.txt": "x\n"}) as directory:
+            root = Path(directory)
+            (root.joinpath(b"\xff.txt".decode("utf-8", "surrogateescape"))).write_bytes(b"y\n")
+            self.assertEqual(2, len(name_guard.tracked_files(root)))
 
     def test_a_phrase_matches_however_it_is_written(self) -> None:
         guard = Guard(frozenset({digest("final boss")}), 2)

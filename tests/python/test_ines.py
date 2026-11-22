@@ -12,6 +12,7 @@ from retrolarium_core.ines import (
     address_to_region_offset,
     cpu_to_prg_offset,
     mapper_profile,
+    mapper_profiles,
     mapper_projections,
     nrom_projections,
     parse_ines,
@@ -104,6 +105,14 @@ class InesTests(unittest.TestCase):
         image = parse_ines(self.banked_image(2, 2, 1))
         with self.assertRaises(InesError):
             mapper_projections(image)
+
+
+class MapperProfileTableTests(unittest.TestCase):
+    def test_the_shared_profile_table_is_read_only(self) -> None:
+        profiles = mapper_profiles()
+        with self.assertRaises(TypeError):
+            profiles[0] = profiles[0]  # type: ignore[index]
+        self.assertIs(profiles[0], mapper_profiles()[0])
 
 
 if __name__ == "__main__":

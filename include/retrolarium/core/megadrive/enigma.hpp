@@ -12,7 +12,24 @@ public:
     using std::runtime_error::runtime_error;
 };
 
-// Decodes an Enigma-compressed tilemap into big-endian tile words.
+// The Enigma variant implemented here is the one Flicky's 68000 decoder reads,
+// checked against that routine; it is not the standard EniDec of the Sonic
+// games. Both share the header layout, the command set (incrementing and
+// static copies from the header's two tiles, inline repeat, increment,
+// decrement and literal runs, with 0x7F ending the stream) and the bit packing.
+// They differ in the flag mask, the header's second byte:
+//
+// - Flicky turns the mask with ror.l #1 then ror.w #1, so mask bit 0 enables
+//   the V-flip bit (0x1000) of each inline tile and mask bit 1 the H-flip bit
+//   (0x0800); the standard EniDec gives bit 0 to H-flip and bit 1 to V-flip.
+// - Flicky ignores mask bits 2 to 4: inline tiles carry no priority or palette
+//   bits, where the standard EniDec reads them (0x8000, 0x4000, 0x2000).
+//
+// A stream with a zero flag mask, which is what enigmaCompress writes, decodes
+// the same under both. The golden corpus pins this behaviour.
+
+// Decodes an Enigma-compressed tilemap (Flicky's variant, see above) into
+// big-endian tile words.
 //
 // `baseTile` is added to every tile the stream produces, which is how the game
 // reuses one map against different VRAM layouts.

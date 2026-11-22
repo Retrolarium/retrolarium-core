@@ -59,12 +59,24 @@ python -m unittest discover -s tests/python
 Retrolarium Studio adds the core with `add_subdirectory` from a
 `retrolarium-core` checkout beside it, without the core's tests: run them here.
 
+`-DRETROLARIUM_SANITIZE=ON` builds the library, `rlcore` and the tests with
+AddressSanitizer and UndefinedBehaviorSanitizer (GCC or Clang).
+`-DRETROLARIUM_FUZZ=ON` (Clang) adds libFuzzer targets for the Nemesis and
+Enigma decoders; `fuzz/seed_corpus.py` writes the golden streams as seeds:
+
+```sh
+cmake -S . -B build-fuzz -DCMAKE_CXX_COMPILER=clang++ -DRETROLARIUM_FUZZ=ON
+cmake --build build-fuzz --target retrolarium-core-fuzz-nemesis
+python fuzz/seed_corpus.py tests/fixtures/megadrive/nemesis_golden.txt build-fuzz/seeds/nemesis
+build-fuzz/retrolarium-core-fuzz-nemesis -max_total_time=60 build-fuzz/seeds/nemesis
+```
+
 ## Contents
 
 | Module    | Purpose                                         |
 | --------- | ----------------------------------------------- |
 | `nemesis` | unpacking and repacking Mega Drive tile streams |
-| `enigma`  | unpacking and packing Mega Drive tile maps      |
+| `enigma`  | unpacking and packing Flicky's Enigma tile maps |
 
 Repacking Nemesis needs a reference stream: the code table sits inside the
 stream itself, so the encoder reuses the original's header and table instead of
@@ -76,6 +88,15 @@ Nemesis and Enigma exist only in C++, which the kit runs as `rlcore`. Their
 corpora (`tests/fixtures/megadrive/*_golden.txt`) were written by Python
 implementations ported independently from the Flicky disassembly, removed once
 the C++ became the only one; they stay the frozen reference the C++ must match.
+
+The Enigma codec is the variant Flicky's 68000 decoder reads, not the standard
+EniDec of the Sonic games. The header, the commands and the bit packing are the
+same; the flag mask differs. In Flicky's variant mask bit 0 enables the V-flip
+bit of each inline tile and mask bit 1 the H-flip bit (the standard EniDec has
+them the other way round), and mask bits 2 to 4, priority and palette in the
+standard EniDec, are ignored. A stream with a zero flag mask, which is what the
+encoder writes, decodes the same under both. A standard EniDec for other games
+is not implemented yet.
 
 The Enigma encoder optimises: it searches for the cheapest sequence of commands.
 It matches the corpus because the order in which candidates are tried and the
@@ -110,8 +131,14 @@ kit and the disassembler find it on their own when run from source: in a
 
 The kit imports the Python layer directly. It does not link the C++ core; it
 runs `rlcore` as a program (as it runs `ca65`) through `retrolarium_core.tool`,
-which looks for the binary in this order: `RETROLARIUM_CORE`, a payload inside
-the wheel, the build tree of the current checkout, then `PATH`.
+which looks for the binary in this order: `RETROLARIUM_CORE` (the Studio names
+the `rlcore` it ships there), a payload inside the wheel
+(`retrolarium_core/_core`), then `PATH`. The build tree of a checkout
+(`build/rlcore`) is used only with `RETROLARIUM_CORE_DEV=1`. Before its first
+command the bridge checks that `rlcore version` reports the package's own
+version, and refuses another: `pyproject.toml`, `retrolarium_core.__version__`
+and `project(VERSION)` in `CMakeLists.txt`, from which CMake generates the
+version `rlcore` prints, carry one number (`tests/python/test_version.py`).
 
 ```sh
 rlcore nemesis decompress art.nem art.bin
@@ -119,6 +146,12 @@ rlcore nemesis compress art.bin art.nem repacked.nem
 rlcore enigma decompress map.eni map.bin
 rlcore enigma compress map.bin map.eni
 ```
+
+`rlcore` prints one JSON line on success. It exits with 1 when a codec refuses
+the data, 2 on a usage error (an unknown command, a base tile that is not a
+whole number from 0 to 0xFFFF) and 3 when a file cannot be read or written; the
+message names the file. Output is written to a uniquely named file beside the
+target and moved over it, after an `fsync` on POSIX.
 
 ## Name guard
 
@@ -148,7 +181,8 @@ names. The list has `[en]` and `[ru]` sections of words and an `[allow]` section
 of longer texts in which a word is fine. Matching ignores case; inside a word,
 `_`, `-` and a space match any one of them or nothing; a stem finds its
 inflected forms. Without a list every check says in capitals that the stop words
-were not checked.
+were not checked: locally that is a warning, but when `CI` is set and for the
+pre-push check it is a failure.
 
 ```powershell
 python -m retrolarium_core.stop_words check path\to\repository

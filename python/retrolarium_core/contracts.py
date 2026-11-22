@@ -12,6 +12,11 @@ class ContractError(ValueError):
     """A generated manifest is unsafe or contradicts its artifacts."""
 
 
+def _integer(value: object) -> bool:
+    """An int that is not a bool (True would pass isinstance(value, int))."""
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
 def _mapping(value: object, name: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ContractError(f"{name} must be an object")
@@ -99,7 +104,7 @@ def validate_nes_disassembly_manifest(manifest: dict[str, Any], root: Path, *, v
     input_record = _mapping(manifest.get("input"), "input")
     input_sha256 = _require_sha256(input_record.get("sha256"), "input.sha256")
     input_size = input_record.get("size")
-    if not isinstance(input_size, int) or input_size <= 0:
+    if not _integer(input_size) or input_size <= 0:
         raise ContractError("input.size must be a positive integer")
 
     backend = _mapping(manifest.get("backend"), "backend")
@@ -259,13 +264,7 @@ def _validate_megadrive_assets(manifest: dict[str, Any], root: Path, input_size:
         path = _validate_hashed_file(root, item, f"asset {identifier}")
         offset = item.get("rom_file_offset")
         size = item.get("size")
-        if (
-            not isinstance(offset, int)
-            or not isinstance(size, int)
-            or offset < 0
-            or size <= 0
-            or offset + size > input_size
-        ):
+        if not _integer(offset) or not _integer(size) or offset < 0 or size <= 0 or offset + size > input_size:
             raise ContractError(f"asset {identifier} has invalid ROM coordinates")
         if path.stat().st_size != size:
             raise ContractError(f"asset {identifier} size differs from its file")
@@ -328,7 +327,7 @@ def validate_megadrive_disassembly_manifest(
         raise ContractError("unsupported Mega Drive input image contract")
     input_sha256 = _require_sha256(input_record.get("sha256"), "input.sha256")
     input_size = input_record.get("size")
-    if not isinstance(input_size, int) or input_size < 0x200:
+    if not _integer(input_size) or input_size < 0x200:
         raise ContractError("input.size must contain a Mega Drive header")
     if input_record.get("byte_order") != "big" or input_record.get("cpu") != "m68000":
         raise ContractError("unsupported Mega Drive input architecture")
@@ -451,13 +450,13 @@ def validate_megadrive_disassembly_manifest(
             or edge.get("confidence") != "proven-static-copy"
             or source.get("address_space") != "m68k"
             or target.get("address_space") != "z80"
-            or not isinstance(size, int)
+            or not _integer(size)
             or size <= 0
-            or not isinstance(start, int)
-            or not isinstance(end, int)
+            or not _integer(start)
+            or not _integer(end)
             or end - start + 1 != size
-            or not isinstance(target_start, int)
-            or not isinstance(target_end, int)
+            or not _integer(target_start)
+            or not _integer(target_end)
             or target_end - target_start + 1 != size
         ):
             raise ContractError(f"invalid cross-CPU edge at index {index}")
@@ -496,14 +495,14 @@ def validate_megadrive_disassembly_manifest(
     padding_bytes = coverage.get("padding_bytes", 0)
     if (
         coverage.get("rom_bytes") != input_size
-        or any(not isinstance(coverage.get(name), int) or coverage[name] < 0 for name in categories)
-        or not isinstance(padding_bytes, int)
+        or any(not _integer(coverage.get(name)) or coverage[name] < 0 for name in categories)
+        or not _integer(padding_bytes)
         or padding_bytes < 0
         or (sum(coverage[name] for name in categories) + padding_bytes != input_size)
     ):
         raise ContractError("source coverage does not partition the complete ROM")
     symbolic_bytes = coverage.get("symbolic_instruction_bytes", 0)
-    if not isinstance(symbolic_bytes, int) or symbolic_bytes < 0 or symbolic_bytes > coverage["instruction_bytes"]:
+    if not _integer(symbolic_bytes) or symbolic_bytes < 0 or symbolic_bytes > coverage["instruction_bytes"]:
         raise ContractError("symbolic instruction bytes exceed analyzed instruction bytes")
 
     operations = _mapping(manifest.get("operations"), "operations")
@@ -574,9 +573,9 @@ def validate_snes_disassembly_manifest(manifest: dict[str, Any], root: Path, *, 
         image.get("cpu") != "w65c816"
         or image.get("byte_order") != "little"
         or image.get("mapping") not in {"lorom", "hirom"}
-        or not isinstance(container_size, int)
-        or not isinstance(rom_size, int)
-        or not isinstance(copier_size, int)
+        or not _integer(container_size)
+        or not _integer(rom_size)
+        or not _integer(copier_size)
         or container_size != rom_size + copier_size
         or copier_size not in {0, 512}
     ):
@@ -717,15 +716,15 @@ def validate_snes_disassembly_manifest(manifest: dict[str, Any], root: Path, *, 
             or source.get("address_space") != "snes-rom"
             or target.get("cpu_id") != "spc700"
             or target.get("address_space") != "spc700-ram"
-            or not isinstance(size, int)
+            or not _integer(size)
             or size <= 0
-            or not isinstance(physical_start, int)
-            or not isinstance(physical_end, int)
+            or not _integer(physical_start)
+            or not _integer(physical_end)
             or physical_end - physical_start + 1 != size
             or physical_start < 0
             or physical_end >= len(main_payload)
-            or not isinstance(target_start, int)
-            or not isinstance(target_end, int)
+            or not _integer(target_start)
+            or not _integer(target_end)
             or target_end - target_start + 1 != size
         ):
             raise ContractError(f"invalid SNES cross-CPU edge at index {index}")
@@ -780,7 +779,7 @@ def validate_snes_disassembly_manifest(manifest: dict[str, Any], root: Path, *, 
     if (
         coverage.get("rom_bytes") != rom_size
         or coverage.get("copier_header_bytes") != copier_size
-        or any(not isinstance(coverage.get(name), int) or coverage[name] < 0 for name in categories)
+        or any(not _integer(coverage.get(name)) or coverage[name] < 0 for name in categories)
         or sum(coverage[name] for name in categories) != rom_size
     ):
         raise ContractError("SNES source coverage does not partition the ROM")

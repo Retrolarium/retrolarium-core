@@ -8,11 +8,17 @@ comments or identifiers.
 
 The guard is a list of SHA-256 digests (name_guard.sha256), one per name a
 game repository marks as distinctive (its "guard" list), so the guard itself
-names nothing. A file is read as words: runs of letters and digits, with
-identifiers split at case changes and underscores (kFinalBoss reads as
-"k final boss"); every run of up to `max_words` words is hashed and looked up.
-Game titles stay in Retrolarium, so the words of a title are removed first
-(a title may contain a character's name).
+names nothing. A file is read as words: runs of letters and digits of any
+script (Latin, Cyrillic, accented letters alike), with identifiers split at
+case changes and underscores (kFinalBoss reads as "k final boss"); every run of
+up to `max_words` words is hashed and looked up. Game titles stay in
+Retrolarium, so the words of a title are removed first (a title may contain a
+character's name).
+
+The digests are plain, unsalted SHA-256 of short phrases: anyone with a
+dictionary of candidate names can recover the guarded names by hashing
+candidates. The guard keeps names from slipping into Retrolarium by accident;
+it does not keep them secret from someone set on recovering them.
 
     python -m retrolarium_core.name_guard check [ROOT]
     python -m retrolarium_core.name_guard tables [ROOT]
@@ -34,6 +40,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import unicodedata
 
 GUARD_FILE = Path(__file__).with_name("name_guard.sha256")
 TABLES_ALLOWLIST = "name_guard_tables.txt"
@@ -53,7 +60,10 @@ def strip_titles(text: str) -> str:
     return text
 
 
-_CHUNK_RE = re.compile(r"[A-Za-z0-9]+")
+# Letters and digits of any script.
+_CHUNK_RE = re.compile(r"[^\W_]+")
+# Parts of a chunk, found in its shape: A an upper-case letter, a any other
+# letter, 0 a digit. For ASCII this is the split it always was.
 _PART_RE = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|[0-9]+")
 # A literal number in source or JSON: 0x1F, $1F, 31, 31.5.
 _NUMBER = r"(?:0[xX][0-9A-Fa-f]+|\$[0-9A-Fa-f]+|-?[0-9]+(?:\.[0-9]+)?)[uUlL]*"
@@ -108,11 +118,17 @@ TEXT_NAMES = frozenset({"CMakeLists.txt", "Makefile", "Dockerfile", ".gitignore"
 TABLE_SUFFIXES = frozenset({".c", ".cc", ".cpp", ".h", ".hpp", ".py", ".lua", ".js", ".json"})
 
 
+def _parts(chunk: str) -> list[str]:
+    """A run of letters and digits split at case changes and digits."""
+    shape = "".join("0" if c.isdecimal() else "A" if c.isupper() else "a" for c in chunk)
+    return [chunk[match.start() : match.end()] for match in _PART_RE.finditer(shape)]
+
+
 def words(text: str) -> list[str]:
     """The lower-case words of a text, identifiers split into their parts."""
     result: list[str] = []
-    for chunk in _CHUNK_RE.findall(text):
-        result.extend(part.lower() for part in _PART_RE.findall(chunk))
+    for chunk in _CHUNK_RE.findall(unicodedata.normalize("NFC", text)):
+        result.extend(part.lower() for part in _parts(chunk))
     return result
 
 
@@ -144,13 +160,15 @@ class Guard:
     def matches_text(self, text: str) -> list[tuple[int, str]]:
         """The guarded phrases in a text with the line each starts on; a phrase
         may run over a line break, as wrapped prose and comments do."""
-        text = strip_titles(text)
+        # Composed, so an accent written as a combining mark stays inside
+        # its word.
+        text = strip_titles(unicodedata.normalize("NFC", text))
         tokens: list[tuple[int, str]] = []
         line, position = 1, 0
         for chunk in _CHUNK_RE.finditer(text):
             line += text.count("\n", position, chunk.start())
             position = chunk.start()
-            tokens.extend((line, part.lower()) for part in _PART_RE.findall(chunk.group(0)))
+            tokens.extend((line, part.lower()) for part in _parts(chunk.group(0)))
         found: list[tuple[int, str]] = []
         for start in range(len(tokens)):
             for length in range(1, self.max_words + 1):
@@ -193,7 +211,8 @@ def tracked_files(root: Path) -> list[str]:
         capture_output=True,
         check=True,
     )
-    return sorted(raw.decode("utf-8") for raw in listed.stdout.split(b"\0") if raw)
+    # A name that is not UTF-8 is kept byte for byte, as the stop words do.
+    return sorted(raw.decode("utf-8", "surrogateescape") for raw in listed.stdout.split(b"\0") if raw)
 
 
 def _is_text(relative: str) -> bool:

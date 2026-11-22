@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import hashlib
 from pathlib import Path
 
@@ -170,11 +170,23 @@ def cartridge_checksum(data: bytes, end: int | None = None) -> int:
     return total
 
 
+# The 68000's work RAM, used when a header declares no usable RAM range.
+WORK_RAM = (0xFF0000, 0xFFFFFF)
+
+
+def _usable_rom_start(start: int, end: int) -> int:
+    """The declared ROM start, or 0 when it is no 68000 address at or below
+    the declared ROM end (a header with garbage there). A cartridge without a
+    mapper starts at 0, where its file does."""
+    return start if start <= 0xFFFFFF and start <= end else 0
+
+
 def _cartridge_checksum_end(data: bytes) -> int:
     # Header addresses are CPU addresses; the checksum reads file offsets.
     # An absent/short declared range, or a truncated image, uses the available
     # payload. A valid shorter range excludes padding, including partial words.
-    size = _u32(data, 0x1A4) - _u32(data, 0x1A0) + 1
+    end = _u32(data, 0x1A4)
+    size = end - _usable_rom_start(_u32(data, 0x1A0), end) + 1
     return size if 0x200 <= size <= len(data) else len(data)
 
 
@@ -215,12 +227,25 @@ def parse_megadrive(data: bytes, source: Path | None = None) -> MegaDriveImage:
         raise MegaDriveError("missing SEGA cartridge signature at file offset 0x100")
 
     header = _parse_header(data)
-    if header.rom_start > header.rom_end:
-        raise MegaDriveError("declared ROM range is reversed")
-    if header.ram_start > header.ram_end:
-        raise MegaDriveError("declared RAM range is reversed")
-    if header.rom_end > 0xFFFFFF or header.ram_end > 0xFFFFFF:
-        raise MegaDriveError("declared range exceeds the 68000 24-bit address space")
+    # Real headers carry odd ranges (RAM up to 0xFFFFFFFF, a ROM start that is
+    # text): warnings, with the addressing falling back to what the hardware
+    # does, not reasons to refuse the cartridge.
+    warnings: list[str] = []
+    rom_start = _usable_rom_start(header.rom_start, header.rom_end)
+    if rom_start != header.rom_start:
+        warnings.append(
+            f"declared ROM start 0x{header.rom_start:08X} is not a 68000 address at or below the declared "
+            f"ROM end 0x{header.rom_end:08X}; addressing from 0"
+        )
+        header = replace(header, rom_start=rom_start)
+    if header.rom_end > 0xFFFFFF:
+        warnings.append(f"declared ROM end 0x{header.rom_end:08X} exceeds the 68000 24-bit address space")
+    if header.ram_start > header.ram_end or header.ram_end > 0xFFFFFF:
+        warnings.append(
+            f"declared RAM range 0x{header.ram_start:08X}-0x{header.ram_end:08X} is not a 68000 range; "
+            f"using work RAM 0x{WORK_RAM[0]:06X}-0x{WORK_RAM[1]:06X}"
+        )
+        header = replace(header, ram_start=WORK_RAM[0], ram_end=WORK_RAM[1])
 
     actual_rom_end = header.rom_start + len(data) - 1
     if actual_rom_end > 0xFFFFFF:
@@ -248,7 +273,6 @@ def parse_megadrive(data: bytes, source: Path | None = None) -> MegaDriveImage:
     else:
         checksum_status = "mismatch"
 
-    warnings: list[str] = []
     if header.rom_end != actual_rom_end:
         warnings.append(f"declared ROM end 0x{header.rom_end:06X} differs from file-backed end 0x{actual_rom_end:06X}")
     if checksum_status == "absent":

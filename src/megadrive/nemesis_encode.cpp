@@ -1,5 +1,6 @@
 #include <retrolarium/core/megadrive/nemesis.hpp>
 
+#include <algorithm>
 #include <map>
 #include <string>
 #include <utility>
@@ -12,7 +13,44 @@ struct ReferenceHeader final {
     // (nybble, run) -> (code value, code bit length)
     std::map<std::pair<int, int>, std::pair<int, int>> codes;
     std::size_t headerSize = 0;
+    // A table code that overlaps the six-bit inline escape (111111): the
+    // decoder looks the table up first, so an inline run would decode as
+    // that code instead.
+    bool escapeShadowed = false;
 };
+
+struct TableCode final {
+    int code = 0;
+    int length = 0;
+    int nybble = 0;
+    int run = 0;
+};
+
+// The decoder fills a 256-entry lookup table, the last definition winning
+// where two codes overlap, while the encoder takes the first definition: a
+// table in which one code is a prefix of another would be written one way and
+// read another. Refused like any other unreadable stream.
+void validateCodes(const std::vector<TableCode>& codes, ReferenceHeader& result) {
+    for (std::size_t first = 0; first < codes.size(); ++first) {
+        const TableCode& a = codes[first];
+        const int escapeBits = std::min(a.length, 6);
+        if ((a.code >> (a.length - escapeBits)) == (1 << escapeBits) - 1) {
+            result.escapeShadowed = true;
+        }
+        for (std::size_t second = first + 1; second < codes.size(); ++second) {
+            const TableCode& b = codes[second];
+            const int shorter = std::min(a.length, b.length);
+            if ((a.code >> (a.length - shorter)) != (b.code >> (b.length - shorter))) {
+                continue;
+            }
+            // The same code repeated for the same run is harmless.
+            if (a.code == b.code && a.length == b.length && a.nybble == b.nybble && a.run == b.run) {
+                continue;
+            }
+            throw NemesisError("Nemesis reference code table is ambiguous: one code is a prefix of another");
+        }
+    }
+}
 
 ReferenceHeader parseReference(const std::vector<std::uint8_t>& reference) {
     const auto require = [&reference](std::size_t index) {
@@ -25,6 +63,7 @@ ReferenceHeader parseReference(const std::vector<std::uint8_t>& reference) {
     ReferenceHeader result;
     result.xorMode = ((require(0) << 8) | require(1)) & 0x8000;
 
+    std::vector<TableCode> table;
     std::size_t position = 2;
     while (true) {
         int value = require(position++);
@@ -47,6 +86,11 @@ ReferenceHeader parseReference(const std::vector<std::uint8_t>& reference) {
                 codeLength = 8;
             }
             const int codeByte = require(position++);
+            // The decoder refuses the same entries.
+            if (codeLength > 8 || codeByte >= (1 << codeLength)) {
+                throw NemesisError("Nemesis reference code table entry is out of range");
+            }
+            table.push_back(TableCode{codeByte, codeLength, paletteIndex, runLength});
             // First definition wins, matching the oracle's setdefault.
             result.codes.emplace(std::make_pair(paletteIndex, runLength), std::make_pair(codeByte, codeLength));
         }
@@ -55,6 +99,7 @@ ReferenceHeader parseReference(const std::vector<std::uint8_t>& reference) {
         }
     }
     result.headerSize = position;
+    validateCodes(table, result);
     return result;
 }
 
@@ -127,6 +172,8 @@ std::vector<std::uint8_t> nemesisCompress(const std::vector<std::uint8_t>& plain
 
     std::vector<int> costs(total + 1, 0);
     std::vector<Choice> choices(total);
+    // Without the inline escape a position may have no way to the end.
+    std::vector<bool> reachable(total + 1, true);
 
     for (std::size_t reverse = total; reverse > 0; --reverse) {
         const std::size_t index = reverse - 1;
@@ -154,17 +201,26 @@ std::vector<std::uint8_t> nemesisCompress(const std::vector<std::uint8_t>& plain
         };
 
         for (std::size_t run = 1; run <= maximum; ++run) {
+            if (!reachable[index + run]) {
+                continue;
+            }
             const int tail = costs[index + run];
             const auto found = header.codes.find(std::make_pair(nybble, static_cast<int>(run)));
             if (found != header.codes.end()) {
                 consider(found->second.second + tail, static_cast<int>(run),
                          Choice{static_cast<int>(run), false, nybble});
             }
-            consider(13 + tail, static_cast<int>(run), Choice{static_cast<int>(run), true, nybble});
+            if (!header.escapeShadowed) {
+                consider(13 + tail, static_cast<int>(run), Choice{static_cast<int>(run), true, nybble});
+            }
         }
 
+        reachable[index] = haveBest;
         costs[index] = bestCost;
         choices[index] = bestChoice;
+    }
+    if (!reachable[0]) {
+        throw NemesisError("Nemesis reference lacks codes for this data and a table code shadows its inline escape");
     }
 
     BitWriter writer;
@@ -189,6 +245,11 @@ std::vector<std::uint8_t> nemesisCompress(const std::vector<std::uint8_t>& plain
     // The original pads its final byte with set bits.
     const auto payload = writer.toBytes(1);
     out.insert(out.end(), payload.begin(), payload.end());
+    // A last guard, cheap at tile sizes: the stream must decode back to the
+    // data it was given, or it is not returned.
+    if (nemesisDecompress(out) != plain) {
+        throw NemesisError("Nemesis re-encoding does not decode back to its input");
+    }
     return out;
 }
 

@@ -23,6 +23,19 @@ class FdsFileRecord:
 
 
 @dataclass(frozen=True)
+class FdsSide:
+    """A side's declared files and what follows them. Bytes after the last
+    declared file are not an error: games hide files past the count the
+    file-amount block gives (their loaders read on regardless), and a side
+    rewritten at a Disk Writer keeps the old data behind the new."""
+
+    records: tuple[FdsFileRecord, ...]
+    trailing_offset: int
+    trailing_data: bytes
+    warnings: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class FdsPayloadRange:
     file_offset: int
     payload_offset: int
@@ -30,6 +43,11 @@ class FdsPayloadRange:
 
 
 def parse_fds_side(image: bytes) -> tuple[FdsFileRecord, ...]:
+    """The declared files of a raw side (see inspect_fds_side for the rest)."""
+    return inspect_fds_side(image).records
+
+
+def inspect_fds_side(image: bytes) -> FdsSide:
     if len(image) != 65_500 or image[0] != 1:
         raise FdsError("FDS image must be one 65500-byte raw disk side")
     position = 56
@@ -64,9 +82,15 @@ def parse_fds_side(image: bytes) -> tuple[FdsFileRecord, ...]:
             )
         )
         position = data_end
-    if any(image[position:]):
-        raise FdsError("FDS side has nonzero data after its declared files")
-    return tuple(records)
+    # Zero padding is the norm; anything else is kept, not refused.
+    trailing = image[position:].rstrip(b"\0")
+    warnings = ()
+    if trailing:
+        warnings = (
+            f"FDS side has {len(trailing)} byte(s) of data after its {file_count} declared file(s), "
+            f"from offset 0x{position:X}",
+        )
+    return FdsSide(tuple(records), position, trailing, warnings)
 
 
 def _selected_records(image: bytes, record_ids: Iterable[int]) -> tuple[FdsFileRecord, ...]:

@@ -88,8 +88,11 @@ std::vector<std::uint8_t> enigmaDecompress(const std::vector<std::uint8_t>& data
         flagsByte -= 0x100;
     }
 
-    // The engine derives the flag mask with ror.l #1 followed by ror.w #1, so
-    // the vertical-flip bit ends up in bit 31 and the horizontal one in bit 15.
+    // Flicky's variant (see enigma.hpp): the engine derives the flag mask with
+    // ror.l #1 followed by ror.w #1, so mask bit 0 (the vertical flip) ends up
+    // in bit 31 and mask bit 1 (the horizontal flip) in bit 15. The standard
+    // EniDec assigns those two bits the other way round. Mask bits 2 to 4
+    // (priority and palette in the standard EniDec) are never consulted.
     std::uint32_t flags = static_cast<std::uint32_t>(flagsByte);
     flags = (flags >> 1) | ((flags & 1u) << 31);
     std::uint32_t low = flags & 0xFFFFu;

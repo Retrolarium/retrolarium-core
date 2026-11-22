@@ -18,7 +18,11 @@ space each match any one of them or nothing, so `some_name` also finds
 `Some-Name` and `SomeName`; a stem finds its inflected forms. Text matching an
 `[allow]` line is skipped. File contents are read as UTF-8, UTF-16 and CP1251.
 
-Without a list nothing is checked, and every command says so in capitals.
+Without a list nothing is checked, and every command says so in capitals. On
+a developer's machine that is a warning and the command succeeds; when the
+`CI` variable is set (to anything but empty, 0 or false) and for `push`, which
+the pre-push hook runs, it is an error: a check that cannot run must not pass
+what it never read.
 
     python -m retrolarium_core.stop_words check [ROOT]
     python -m retrolarium_core.stop_words staged [REPO]
@@ -40,6 +44,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass, field
+from functools import lru_cache
 import os
 from pathlib import Path
 import re
@@ -53,6 +58,10 @@ SECTIONS = ("en", "ru", "allow")
 NOT_PERFORMED = "STOP-WORD CHECK NOT PERFORMED"
 _SEPARATORS = "_- "
 _ZERO = "0" * 40
+
+
+class GitObjectError(RuntimeError):
+    """git could not hand over an object the check has to read."""
 
 
 @dataclass(frozen=True)
@@ -142,22 +151,54 @@ def not_performed(start: Path) -> str:
     return f"{NOT_PERFORMED}: {where}"
 
 
+def required(command: str) -> bool:
+    """Whether a missing list fails the command: in CI, and for what a push
+    sends."""
+    return command == "push" or os.environ.get("CI", "").strip().lower() not in ("", "0", "false")
+
+
 def _git(repo: Path, *args: str, data: bytes | None = None) -> bytes:
     return subprocess.run(["git", "-C", str(repo), *args], input=data or b"", capture_output=True, check=True).stdout
 
 
+@lru_cache(maxsize=None)
+def _git_version() -> tuple[int, int]:
+    found = re.search(rb"(\d+)\.(\d+)", subprocess.run(["git", "version"], capture_output=True).stdout)
+    return (int(found.group(1)), int(found.group(2))) if found else (0, 0)
+
+
+def _read_until(stream, delimiter: bytes) -> bytes:
+    line = bytearray()
+    while True:
+        byte = stream.read(1)
+        if not byte or byte == delimiter:
+            return bytes(line)
+        line += byte
+
+
 def _batch(repo: Path, names: list[str]):
     """(name, kind, body) for each object name, through git cat-file, one
-    object in memory at a time."""
+    object in memory at a time. Names and answers are NUL-separated (git 2.42's
+    -Z), so a path with a line break cannot shift the answers; an older git
+    refuses such a path. An object git does not have, or a name it finds
+    ambiguous, is a GitObjectError: nothing is skipped unread."""
     if not names:
         return
+    separated = _git_version() >= (2, 42)
+    if not separated:
+        for name in names:
+            if "\n" in name:
+                raise GitObjectError(f"{name!r} has a line break, which git before 2.42 cannot check")
+    separator = b"\0" if separated else b"\n"
     process = subprocess.Popen(
-        ["git", "-C", str(repo), "cat-file", "--batch"], stdin=subprocess.PIPE, stdout=subprocess.PIPE
+        ["git", "-C", str(repo), "cat-file", "--batch", *(["-Z"] if separated else [])],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
     )
 
     def feed() -> None:
         try:
-            process.stdin.write("\n".join(names).encode("utf-8", "surrogateescape") + b"\n")
+            process.stdin.write(b"".join(name.encode("utf-8", "surrogateescape") + separator for name in names))
         except OSError:
             pass
         finally:
@@ -169,9 +210,13 @@ def _batch(repo: Path, names: list[str]):
     writer.start()
     try:
         for name in names:
-            header = process.stdout.readline().decode().rstrip("\n")
-            if not header or header.endswith(" missing"):
-                continue
+            header = _read_until(process.stdout, separator).decode("utf-8", "surrogateescape")
+            if not header:
+                raise GitObjectError(f"git cat-file stopped before {name!r}")
+            if header.endswith(" missing"):
+                raise GitObjectError(f"git has no object {name!r}")
+            if header.endswith(" ambiguous"):
+                raise GitObjectError(f"the object name {name!r} is ambiguous")
             _sha, kind, size = header.split()
             body = process.stdout.read(int(size))
             process.stdout.read(1)
@@ -225,7 +270,14 @@ def check_staged(repo: Path, words: StopWords) -> list[str]:
         found = words.find(path)
         if found:
             problems.append(f"path {path}: {', '.join(found)}")
-    for name, kind, body in _batch(repo, [f":{path}" for path in paths]):
+    # A submodule's commit lives in the submodule, not here: its path is
+    # checked, there is no content to read.
+    submodules = set()
+    for entry in _git(repo, "ls-files", "--stage", "-z").split(b"\0"):
+        if entry.startswith(b"160000 "):
+            submodules.add(entry.split(b"\t", 1)[1].decode("utf-8", "surrogateescape"))
+    blobs = [f":{path}" for path in paths if path not in submodules]
+    for name, kind, body in _batch(repo, blobs):
         found = words.find_bytes(body)
         if found and kind == "blob":
             problems.append(f"{name[1:]}: {', '.join(found)}")
@@ -341,22 +393,29 @@ def main(argv: list[str] | None = None) -> int:
     words = load(root)
     if words is None:
         print(not_performed(root), file=sys.stderr)
+        if args.command != "where" and required(args.command):
+            print(f"{NOT_PERFORMED} counts as a failure in CI and before a push", file=sys.stderr)
+            return 1
         return 0
     if args.command == "where":
         print(f"{words.source}: {len(words.words)} stop words, {len(words.allowed)} allowed texts")
         return 0
-    if args.command == "check":
-        problems, what = check_tree(root, words), root.name
-    elif args.command == "staged":
-        problems, what = check_staged(root, words), "the staged changes"
-    elif args.command == "message":
-        problems, what = check_message(root, args.file, words), "the commit message"
-    elif args.command == "history":
-        problems, commits, blobs = check_history(root, words, args.all)
-        what = f"the history of {root.name} ({commits} commits, {blobs} blobs)"
-    else:
-        problems, commits, blobs = check_push(root, args.remote, sys.stdin.read(), words)
-        what = f"the push to {args.remote} ({commits} commits, {blobs} blobs)"
+    try:
+        if args.command == "check":
+            problems, what = check_tree(root, words), root.name
+        elif args.command == "staged":
+            problems, what = check_staged(root, words), "the staged changes"
+        elif args.command == "message":
+            problems, what = check_message(root, args.file, words), "the commit message"
+        elif args.command == "history":
+            problems, commits, blobs = check_history(root, words, args.all)
+            what = f"the history of {root.name} ({commits} commits, {blobs} blobs)"
+        else:
+            problems, commits, blobs = check_push(root, args.remote, sys.stdin.read(), words)
+            what = f"the push to {args.remote} ({commits} commits, {blobs} blobs)"
+    except GitObjectError as error:
+        print(f"STOP-WORD CHECK FAILED: {error}", file=sys.stderr)
+        return 1
     for problem in problems:
         print(problem)
     print(f"{len(problems)} stop words in {what}", file=sys.stderr)

@@ -7,6 +7,8 @@ from functools import lru_cache
 import hashlib
 import json
 from pathlib import Path
+from types import MappingProxyType
+from typing import Mapping
 
 
 class InesError(ValueError):
@@ -169,8 +171,14 @@ def load_ines(path: Path) -> InesImage:
 PROFILE_PATH = Path(__file__).resolve().parent / "profiles" / "nes_mappers.json"
 
 
+def mapper_profiles() -> Mapping[int, MapperProfile]:
+    """The mapper profiles by mapper number, read once; read-only, since every
+    caller shares the same table."""
+    return _mapper_profiles()
+
+
 @lru_cache(maxsize=1)
-def mapper_profiles() -> dict[int, MapperProfile]:
+def _mapper_profiles() -> Mapping[int, MapperProfile]:
     try:
         document = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -196,7 +204,7 @@ def mapper_profiles() -> dict[int, MapperProfile]:
             )
     except (KeyError, TypeError, ValueError) as exc:
         raise InesError("invalid NES mapper profile entry") from exc
-    return profiles
+    return MappingProxyType(profiles)
 
 
 def mapper_profile(image: InesImage) -> MapperProfile:

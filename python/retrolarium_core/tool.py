@@ -9,10 +9,19 @@ package with no compiler on the install path.
 
 Resolution order, first hit wins:
 
-1. ``RETROLARIUM_CORE`` - an explicit path, for development and for CI pinning.
-2. A payload shipped inside the wheel, which is how an installed Kit finds it.
-3. A build tree in this checkout, which is how a working copy finds it.
-4. ``PATH``.
+1. ``RETROLARIUM_CORE`` - an explicit path; the Studio names the rlcore it
+   ships this way, and CI pins one.
+2. A payload shipped inside the wheel (``retrolarium_core/_core``), which is
+   how an installed Kit finds it.
+3. ``PATH``.
+4. A build tree in a retrolarium-core checkout, only when
+   ``RETROLARIUM_CORE_DEV=1``: a stale build beside an installed package is
+   never picked up by accident.
+
+The binary is pinned: before its first command in a process, ``rlcore version``
+must report this package's ``__version__`` (CMakeLists.txt's project version,
+which tests/python/test_version.py keeps equal), or ``CoreToolError`` names the
+path and both versions.
 """
 
 from __future__ import annotations
@@ -25,10 +34,14 @@ import subprocess
 import tempfile
 from typing import Sequence
 
+from retrolarium_core import __version__
 from retrolarium_core.host import normalize_host
 
 TOOL_NAME = "rlcore"
 ENVIRONMENT_OVERRIDE = "RETROLARIUM_CORE"
+DEVELOPMENT_SWITCH = "RETROLARIUM_CORE_DEV"
+# The rlcore version this package drives.
+RLCORE_VERSION = __version__
 
 
 class CoreToolError(RuntimeError):
@@ -69,7 +82,7 @@ def find_core_tool() -> Path:
             return candidate
         raise CoreToolError(f"{ENVIRONMENT_OVERRIDE} points at {candidate}, which is not a file")
 
-    for candidate in _packaged_candidates() + _checkout_candidates():
+    for candidate in _packaged_candidates():
         if candidate.is_file():
             return candidate
 
@@ -77,26 +90,67 @@ def find_core_tool() -> Path:
     if found:
         return Path(found)
 
+    if os.environ.get(DEVELOPMENT_SWITCH) == "1":
+        for candidate in _checkout_candidates():
+            if candidate.is_file():
+                return candidate
+
     raise CoreToolError(
-        f"{TOOL_NAME} was not found. Build retrolarium-core, or set {ENVIRONMENT_OVERRIDE} to the executable."
+        f"{TOOL_NAME} was not found. Set {ENVIRONMENT_OVERRIDE} to the executable, or build retrolarium-core "
+        f"and set {DEVELOPMENT_SWITCH}=1 to use its build tree."
     )
+
+
+# Tools whose version matched, by path and file identity: checked once a
+# process, again when the file changes.
+_verified: set[tuple[str, int, int]] = set()
+
+
+def _verified_tool() -> Path:
+    tool = find_core_tool()
+    status = tool.stat()
+    key = (str(tool.resolve()), status.st_mtime_ns, status.st_size)
+    if key in _verified:
+        return tool
+    reported = _version_of(tool)
+    if reported != RLCORE_VERSION:
+        raise CoreToolError(
+            f"{tool} is {TOOL_NAME} {reported or '(no version)'}, but retrolarium_core {RLCORE_VERSION} needs "
+            f"{TOOL_NAME} {RLCORE_VERSION}: rebuild it, or point {ENVIRONMENT_OVERRIDE} at a matching one"
+        )
+    _verified.add(key)
+    return tool
+
+
+def _execute(tool: Path, arguments: Sequence[str], timeout: float) -> subprocess.CompletedProcess:
+    """Run rlcore; whatever goes wrong (it cannot start, it hangs, it prints
+    bytes that are not UTF-8) is a CoreToolError, never another exception."""
+    try:
+        return subprocess.run(
+            [str(tool), *arguments],
+            capture_output=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise CoreToolError(f"{TOOL_NAME} {' '.join(arguments)} did not finish within {timeout:g} s") from error
+    except OSError as error:
+        raise CoreToolError(f"{tool} could not be run: {error}") from error
 
 
 def run(arguments: Sequence[str], *, timeout: float = 120.0) -> dict[str, object]:
     """Run one rlcore command and return its JSON result.
 
     Commands that report nothing return an empty mapping rather than failing,
-    so a caller can treat "no output" and "no result" the same way.
+    so a caller can treat "no output" and "no result" the same way. rlcore
+    exits with 1 when it refuses the data, 2 on a usage error and 3 when a
+    file cannot be read or written; each is a CoreToolError here.
     """
 
-    tool = find_core_tool()
-    completed = subprocess.run(
-        [str(tool), *arguments],
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-        check=False,
-    )
+    tool = _verified_tool()
+    completed = _execute(tool, arguments, timeout)
     if completed.returncode != 0:
         detail = completed.stderr.strip() or completed.stdout.strip()
         raise CoreToolError(f"{TOOL_NAME} {' '.join(arguments)} failed with exit code {completed.returncode}: {detail}")
@@ -114,12 +168,16 @@ def run(arguments: Sequence[str], *, timeout: float = 120.0) -> dict[str, object
     return parsed
 
 
-def version() -> str:
-    tool = find_core_tool()
-    completed = subprocess.run([str(tool), "version"], capture_output=True, text=True, timeout=30, check=False)
+def _version_of(tool: Path) -> str:
+    completed = _execute(tool, ["version"], 30)
     if completed.returncode != 0:
         raise CoreToolError(f"{TOOL_NAME} version failed: {completed.stderr.strip()}")
     return completed.stdout.strip()
+
+
+def version() -> str:
+    """The version the rlcore found reports, whether or not it matches."""
+    return _version_of(find_core_tool())
 
 
 def nemesis_decompress(source: Path, output: Path) -> dict[str, object]:
