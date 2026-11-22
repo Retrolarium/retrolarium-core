@@ -33,7 +33,7 @@ endif()
 # Warnings for every target of the core, and the sanitizers when asked for.
 function(retrolarium_core_enable_warnings target)
     if(MSVC)
-        target_compile_options(${target} PRIVATE /W4 /permissive-)
+        target_compile_options(${target} PRIVATE /W4 /permissive- /utf-8)
     else()
         target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
     endif()
@@ -90,6 +90,14 @@ if(RETROLARIUM_CORE_BUILD_TESTS AND BUILD_TESTING)
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/megadrive/enigma_golden.txt
     )
 
+    # A host-independent manifest for the Python runner, including cross-built
+    # Windows programs tested on Windows. Paths are resolved by tools/test.py.
+    set(core_tests
+        "  {\"name\": \"core.nemesis_parity\", \"program\": \"$<TARGET_FILE_NAME:retrolarium-core-nemesis-tests>\", \"arguments\": [\"repo:tests/fixtures/megadrive/nemesis_golden.txt\"]},\n"
+        "  {\"name\": \"core.enigma_parity\", \"program\": \"$<TARGET_FILE_NAME:retrolarium-core-enigma-tests>\", \"arguments\": [\"repo:tests/fixtures/megadrive/enigma_golden.txt\"]}"
+    )
+    string(JOIN "" core_tests ${core_tests})
+
     # rlcore's exit codes: a malformed or out-of-range base tile is a usage
     # error (2) before any file is opened; a missing input is a file error (3).
     if(RETROLARIUM_CORE_BUILD_CLI)
@@ -100,6 +108,9 @@ if(RETROLARIUM_CORE_BUILD_TESTS AND BUILD_TESTING)
             list(GET fields 0 name)
             list(GET fields 1 tile)
             list(GET fields 2 expected)
+            string(APPEND core_tests
+                ",\n  {\"name\": \"core.cli_base_tile_${name}\", \"program\": \"$<TARGET_FILE_NAME:rlcore>\", \"arguments\": [\"enigma\", \"decompress\", \"bin:no-such-input.eni\", \"bin:unused-output.bin\", \"${tile}\"], \"expected_exit\": ${expected}}"
+            )
             add_test(NAME core.cli_base_tile_${name}
                 COMMAND ${CMAKE_COMMAND}
                     -DRLCORE=$<TARGET_FILE:rlcore>
@@ -109,6 +120,10 @@ if(RETROLARIUM_CORE_BUILD_TESTS AND BUILD_TESTING)
             )
         endforeach()
     endif()
+endif()
+
+if(RETROLARIUM_CORE_BUILD_TESTS AND BUILD_TESTING)
+    file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/tests.json CONTENT "[\n${core_tests}\n]\n")
 endif()
 
 # Fuzz targets: each compiles its codec's sources itself, instrumented for

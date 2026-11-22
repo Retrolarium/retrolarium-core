@@ -83,6 +83,20 @@ class FormatterFailureTests(unittest.TestCase):
         self.assertEqual("npm install -g @taplo/cli", found["TOML"].missing)
 
 
+class ExcludedFormatterTests(unittest.TestCase):
+    def test_excluded_powershell_never_probes_or_starts_the_interpreter(self) -> None:
+        repo = _repository({"script.ps1": b"Write-Output test\n"})
+        self.addCleanup(shutil.rmtree, repo, True)
+
+        def which(program):
+            if program.lower() in ("powershell", "pwsh"):
+                self.fail("excluded PowerShell formatter probed the interpreter")
+            return None
+
+        with mock.patch.object(formatting.shutil, "which", which):
+            self.assertEqual([], formatting.results(repo, check=True, exclude=("PowerShell",)))
+
+
 class OperandTests(unittest.TestCase):
     def test_a_file_named_like_an_option_is_passed_as_a_file(self) -> None:
         calls = []

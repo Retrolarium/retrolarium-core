@@ -447,13 +447,15 @@ class Result:
     error: str | None = None
 
 
-def results(repo: Path, check: bool = False) -> list[Result]:
+def results(repo: Path, check: bool = False, *, exclude: tuple[str, ...] = ()) -> list[Result]:
     """Format the repository (with check, only find what would change), one
     result a language that has files."""
     repo = repo.resolve()
     tracked = _git_files(repo)
     found = []
     for language in LANGUAGES:
+        if language.name in exclude:
+            continue
         files = files_for(repo, language.patterns, tracked)
         if not files:
             continue
@@ -466,11 +468,11 @@ def results(repo: Path, check: bool = False) -> list[Result]:
     return found
 
 
-def run(repo: Path, check: bool = False, out=sys.stderr) -> int:
+def run(repo: Path, check: bool = False, out=sys.stderr, *, exclude: tuple[str, ...] = ()) -> int:
     """Format the repository (with check, only list what would change);
     nonzero when check finds a file to change or a formatter fails."""
     failed = False
-    for result in results(repo, check):
+    for result in results(repo, check, exclude=exclude):
         if result.missing:
             print(f"{result.language.upper()} FORMAT NOT CHECKED: install {result.missing}", file=out)
             continue
