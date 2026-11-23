@@ -47,6 +47,12 @@ one implementation makes source builds and editor saves agree.
 
 ## Building
 
+Building the native library needs CMake 3.21+ and a C++17 compiler (MSVC 2019+,
+GCC or Clang). The Python layer and test runner need Python 3.11+ and Git.
+Windows end users get `rlcore.exe` with Studio; developers find it in
+`build/Release/rlcore.exe` with Visual Studio, or `build/rlcore.exe` with a
+single-configuration generator.
+
 From the root of this repository:
 
 ```sh
@@ -151,11 +157,12 @@ rlcore enigma decompress map.eni map.bin
 rlcore enigma compress map.bin map.eni
 ```
 
-`rlcore` prints one JSON line on success. It exits with 1 when a codec refuses
-the data, 2 on a usage error (an unknown command, a base tile that is not a
-whole number from 0 to 0xFFFF) and 3 when a file cannot be read or written; the
-message names the file. Output is written to a uniquely named file beside the
-target and moved over it, after an `fsync` on POSIX.
+`rlcore` prints one JSON line for successful codec commands; `rlcore version`
+prints the plain version string. It exits with 1 when a codec refuses the data,
+2 on a usage error (an unknown command, a base tile that is not a whole number
+from 0 to 0xFFFF) and 3 when a file cannot be read or written; the message names
+the file. Output is written to a uniquely named file beside the target and moved
+over it, after an `fsync` on POSIX.
 
 ## Name guard
 
@@ -213,9 +220,10 @@ Retrolarium's and the games', installs it once per clone, here with
 they run; the kit's `rltool hooks install` sets `RLTOOL` that way for the game
 repositories.
 
-`make lint` checks the tree for stop words; `make format` formats the Markdown
-with mdformat and mdformat-gfm (`pip install mdformat mdformat-gfm`), and
-`make format-check` only reports.
+`make lint` checks the tree for stop words; `make format` runs the available
+formatters for tracked Markdown, Python, C/C++, Lua, PowerShell, JSON, TOML,
+Java and shell files. `make format-check` only reports. Missing formatters are
+named in the output; see `retrolarium_core.formatting` for their commands.
 
 ## Trademarks
 

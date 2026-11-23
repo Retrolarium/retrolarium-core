@@ -1,11 +1,12 @@
 """The shared runner's actual subprocess behavior, on any host."""
 
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 import io
 import json
 import os
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -20,6 +21,21 @@ class PortableRunnerTests(unittest.TestCase):
         self.root = Path(temporary.name).resolve()
         self.environment = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONDONTWRITEBYTECODE="1")
 
+    def python_run(self) -> tuple[int, str]:
+        # Keep deliberately failing child-suite output out of the parent
+        # test report, while still running and checking the real subprocess.
+        run = subprocess.run
+        captured = []
+
+        def capture(*args, **options):
+            result = run(*args, **options, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            captured.append(result.stdout.decode("utf-8", errors="replace"))
+            return result
+
+        with patch.object(testing.subprocess, "run", side_effect=capture), redirect_stdout(io.StringIO()):
+            code = testing.python_tests(self.root, "tests", self.environment)
+        return code, "".join(captured)
+
     def test_python_discovery_runs_the_requested_checkout_and_propagates_failure(self) -> None:
         tests = self.root / "tests"
         tests.mkdir()
@@ -28,22 +44,24 @@ class PortableRunnerTests(unittest.TestCase):
             "import unittest\nclass Probe(unittest.TestCase):\n    def test_bad(self): self.fail('expected probe failure')\n",
             encoding="utf-8",
         )
-        self.assertEqual(1, testing.python_tests(self.root, "tests", self.environment))
+        code, output = self.python_run()
+        self.assertEqual(1, code)
+        self.assertIn("expected probe failure", output)
         source.write_text(
             "import unittest\nclass Probe(unittest.TestCase):\n    def test_ok(self): self.assertTrue(True)\n",
             encoding="utf-8",
         )
-        self.assertEqual(0, testing.python_tests(self.root, "tests", self.environment))
+        self.assertEqual(0, self.python_run()[0])
 
     def test_empty_python_discovery_is_a_failure(self) -> None:
         (self.root / "tests").mkdir()
-        self.assertEqual(1, testing.python_tests(self.root, "tests", self.environment))
+        self.assertEqual(1, self.python_run()[0])
 
     def run_cases(self, cases: list[dict], timeout: float = 10) -> tuple[int, str]:
         manifest = self.root / "tests.json"
         manifest.write_text(json.dumps(cases), encoding="utf-8")
         output = io.StringIO()
-        with redirect_stdout(output):
+        with redirect_stdout(output), redirect_stderr(output):
             code = testing.native_tests(self.root, self.root, manifest, self.root / "games", self.environment, timeout)
         return code, output.getvalue()
 

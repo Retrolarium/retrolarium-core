@@ -50,7 +50,9 @@ _VARIABLE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 def _git(repo: Path, *args: str) -> str:
-    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=True).stdout.strip()
+    return subprocess.run(
+        ["git", "-C", str(repo), *args], capture_output=True, text=True, encoding="utf-8", errors="strict", check=True
+    ).stdout.strip()
 
 
 def hooks_folder(repo: Path) -> Path:
@@ -129,7 +131,13 @@ def make_targets(repo: Path) -> list[str]:
     environment = dict(os.environ, LC_ALL="C", LANGUAGE="C")
     for target in MAKE_TARGETS:
         result = subprocess.run(
-            [make, "-n", "-s", target], cwd=repo, capture_output=True, text=True, errors="replace", env=environment
+            [make, "-n", "-s", target],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=environment,
         )
         if not re.search(rf"No rule to make target .{re.escape(target)}'", result.stderr):
             found.append(target)
@@ -146,7 +154,9 @@ def _stop_words(*args: str, stdin: str | None = None) -> int:
     command = [sys.executable, "-m", "retrolarium_core.stop_words", *args]
     environment = dict(os.environ)
     environment["PYTHONPATH"] = os.pathsep.join(filter(None, [str(_CORE), environment.get("PYTHONPATH")]))
-    return subprocess.run(command, input=stdin, text=True, env=environment).returncode
+    return subprocess.run(
+        command, input=stdin, text=True, encoding="utf-8", errors="strict", env=environment
+    ).returncode
 
 
 def run(hook: str, args: list[str], repo: Path) -> int:

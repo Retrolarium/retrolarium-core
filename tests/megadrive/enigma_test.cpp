@@ -192,6 +192,20 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // Exactly the decoder limit round-trips; one word beyond is refused
+    // before allocating the encoder's search graph.
+    const std::vector<std::uint8_t> maximum(0x10000, 0);
+    if (retrolarium::core::enigmaDecompress(retrolarium::core::enigmaCompress(maximum)) != maximum) {
+        std::cerr << "FAIL: the maximum supported Enigma map does not round-trip\n";
+        ++failures;
+    }
+    try {
+        (void)retrolarium::core::enigmaCompress(std::vector<std::uint8_t>(0x10002, 0));
+        std::cerr << "FAIL: Enigma accepted more than the decoder limit\n";
+        ++failures;
+    } catch (const retrolarium::core::EnigmaError&) {
+    }
+
     if (cases == 0) {
         std::cerr << "corpus carried no cases\n";
         return 2;

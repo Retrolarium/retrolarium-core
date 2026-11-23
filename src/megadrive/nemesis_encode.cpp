@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <map>
+#include <set>
 #include <string>
+#include <tuple>
 #include <utility>
 
 namespace retrolarium::core {
@@ -30,7 +32,15 @@ struct TableCode final {
 // where two codes overlap, while the encoder takes the first definition: a
 // table in which one code is a prefix of another would be written one way and
 // read another. Refused like any other unreadable stream.
-void validateCodes(const std::vector<TableCode>& codes, ReferenceHeader& result) {
+void validateCodes(const std::vector<TableCode>& definitions, ReferenceHeader& result) {
+    // Repeated identical definitions are legal. Deduplicate before the
+    // pairwise prefix check so a long redundant table cannot make it quadratic
+    // in the input length. A prefix-free table has at most 256 distinct codes.
+    std::set<std::tuple<int, int, int, int>> seen;
+    std::vector<TableCode> codes;
+    for (const TableCode& code : definitions) {
+        if (seen.emplace(code.code, code.length, code.nybble, code.run).second) codes.push_back(code);
+    }
     for (std::size_t first = 0; first < codes.size(); ++first) {
         const TableCode& a = codes[first];
         const int escapeBits = std::min(a.length, 6);

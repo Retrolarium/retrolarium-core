@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -171,6 +172,52 @@ class LookupOrderTest(unittest.TestCase):
 
 @unittest.skipIf(available() is None, "rlcore has not been built")
 class CoreToolRoundTripTest(unittest.TestCase):
+    def test_redundant_nemesis_reference_table_has_bounded_validation_cost(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            reference, plain, packed = root / "reference.nem", root / "plain.bin", root / "packed.nem"
+            # One legal two-bit code repeated 300,000 times. Its meaning is
+            # unchanged; a quadratic validator would perform 45 billion pairs.
+            reference.write_bytes(b"\x00\x01\x05" + b"\x72\x00" * 300_000 + b"\xff\x00\x00\x00\x00")
+            plain.write_bytes(b"\x55" * 32)
+            core_tool.run(["nemesis", "compress", str(plain), str(reference), str(packed)], timeout=5)
+            restored = root / "restored.bin"
+            core_tool.nemesis_decompress(packed, restored)
+            self.assertEqual(plain.read_bytes(), restored.read_bytes())
+
+    def test_unicode_and_space_paths_round_trip_with_the_real_cli(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "codec test \u0442\u0435\u0441\u0442"
+            root.mkdir()
+            plain, packed, restored = [
+                root / name
+                for name in (
+                    "input \u043a\u0430\u0440\u0442\u0430.bin",
+                    "packed \u043a\u0430\u0440\u0442\u0430.eni",
+                    "restored \u043a\u0430\u0440\u0442\u0430.bin",
+                )
+            ]
+            plain.write_bytes(b"\x00\x01\x00\x02" * 16)
+            core_tool.enigma_compress(plain, packed)
+            core_tool.enigma_decompress(packed, restored)
+            self.assertEqual(plain.read_bytes(), restored.read_bytes())
+
+    def test_oversized_enigma_input_returns_codec_error_and_creates_no_output(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, output = root / "too-large.bin", root / "packed.eni"
+            source.write_bytes(b"\x00\x01" * 32769)
+            result = subprocess.run(
+                [str(available()), "enigma", "compress", str(source), str(output)],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=30,
+            )
+            self.assertEqual(1, result.returncode)
+            self.assertIn("64 KB", result.stderr)
+            self.assertFalse(output.exists())
+
     def test_version_is_reported(self) -> None:
         self.assertRegex(core_tool.version(), r"^\d+\.\d+\.\d+$")
 

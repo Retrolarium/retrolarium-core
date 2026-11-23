@@ -187,6 +187,9 @@ private:
 }  // namespace
 
 std::vector<std::uint8_t> enigmaCompress(const std::vector<std::uint8_t>& data) {
+    if (data.size() > 0x10000) {
+        throw EnigmaError("Enigma input tilemap exceeds the 64 KB decoder limit");
+    }
     const std::vector<int> values = wordsFromBytes(data);
     if (values.empty()) {
         throw EnigmaError("Enigma cannot encode an empty tilemap");
